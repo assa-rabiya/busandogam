@@ -1,0 +1,1 @@
+export function DiscoveryImage({ label, tone, name, className = "" }: { label: string; tone: string; name: string; className?: string }) { return <div className={`discovery-image tone-${tone} ${className}`} role="img" aria-label={`${name} 이미지`}><span>{label}</span><i /><i /></div>; }

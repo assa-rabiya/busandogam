@@ -1,0 +1,6 @@
+"use client";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "../components/auth-provider";
+import { replaceAppRoute } from "../client-navigation";
+export default function LoginPage() { const { user, isReady, isLoggingIn, login } = useAuth(); const router = useRouter(); useEffect(() => { if (user) replaceAppRoute(router, "/"); }, [router, user]); const handleLogin = async () => { await login(); replaceAppRoute(router, "/"); }; return <main className="login-page"><section className="login-card"><div className="login-brand"><span>⌁</span><p>BUSAN SEA FIELD GUIDE</p><h1>부산바다도감</h1><strong>부산의 바다를 발견하고 기록하세요</strong></div><div className="login-actions"><button className="demo-login" disabled={!isReady || isLoggingIn} onClick={handleLogin}>{isLoggingIn ? "데모 계정으로 입장 중…" : "데모 계정으로 둘러보기 →"}</button><p className="login-divider"><span>또는</span></p>{["카카오로 시작하기", "네이버로 시작하기", "이메일로 시작하기"].map((label) => <button key={label} className="social-login" disabled={!isReady || isLoggingIn} onClick={handleLogin}>{label}</button>)}</div><p className="login-note">발표용 프로토타입입니다. 모든 버튼은 데모 계정으로 안전하게 로그인됩니다.</p></section></main>; }

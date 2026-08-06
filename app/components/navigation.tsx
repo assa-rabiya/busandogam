@@ -1,0 +1,10 @@
+"use client";
+import { AppLink as Link } from "./app-link";
+import { usePathname } from "next/navigation";
+import type { AppUser, NavigationId } from "../types";
+import { withBasePath } from "../base-path";
+const items: { id: NavigationId; label: string; icon: string; href: string }[] = [{ id: "home", label: "홈", icon: "⌂", href: "/" }, { id: "map", label: "지도", icon: "⌖", href: "/map" }, { id: "camera", label: "촬영", icon: "◎", href: "/identify" }, { id: "community", label: "커뮤니티", icon: "◌", href: "/community" }, { id: "collection", label: "도감", icon: "▦", href: "/collection" }];
+const isActive = (pathname: string, href: string) => href === "/" ? pathname === href : pathname.startsWith(href);
+export function BottomNavigation() { const pathname = usePathname(); return <nav className="bottom-nav" aria-label="주요 메뉴">{items.map((item) => <a key={item.id} href={withBasePath(item.href)} className={`${isActive(pathname, item.href) ? "active" : ""} ${item.id === "camera" ? "camera" : ""}`}><span aria-hidden="true">{item.icon}</span>{item.label}</a>)}</nav>; }
+export function DesktopNavigation() { const pathname = usePathname(); return <aside className="desktop-nav"><Link className="brand" href="/"><span className="brand-mark">⌁</span><strong>부산바다도감</strong></Link><nav aria-label="데스크톱 주요 메뉴">{items.map((item) => <a key={item.id} href={withBasePath(item.href)} className={isActive(pathname, item.href) ? "active" : ""}><span aria-hidden="true">{item.icon}</span>{item.label}</a>)}</nav></aside>; }
+export function PageHeader({ user }: { user: AppUser | null }) { return <header className="page-header"><div><p className="location">⌖ 부산광역시 · 청사포</p><p className="greeting">{user ? `반가워요, ${user.nickname}님` : "부산의 바다를 탐험해 보세요"}</p></div><div className="header-actions"><button className="icon-button" aria-label="알림">♧</button><a className="profile" href={withBasePath(user ? "/profile" : "/login")} aria-label={user ? "내 프로필" : "로그인"}>{user ? "민" : "→"}</a></div></header>; }
