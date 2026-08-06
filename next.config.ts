@@ -4,6 +4,7 @@ const isGitHubPagesBuild = process.env.GITHUB_PAGES === "true";
 
 const nextConfig: NextConfig = {
   output: isGitHubPagesBuild ? "export" : undefined,
+  basePath: isGitHubPagesBuild ? "/busandogam" : undefined,
   assetPrefix: isGitHubPagesBuild ? "/busandogam" : undefined,
   trailingSlash: false,
 };
