@@ -2,7 +2,6 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useRef } from "react";
-import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import { AppShell } from "../components/app-shell";
 import { ProtectedPage } from "../components/protected-page";
@@ -19,16 +18,13 @@ const demos: Array<{ id: DemoImageId; name: string; note: string; label: string;
 ];
 
 export default function IdentifyPage() {
-  const { selectedImage, error, selectDemo, selectFile, analyze, clear, clearError } = useIdentification();
+  const { selectedImage, error, selectDemo, selectFile, clear, clearError } = useIdentification();
   const cameraInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const chooseFile = (file?: File) => { if (file) { clearError(); selectFile(file); } };
   const startAnalysis = () => {
     if (!selectedImage) return;
-    // Commit the analysis state before routing so the result screen never
-    // mistakes an in-progress session for a missing session.
-    flushSync(() => { void analyze(); });
     pushAppRoute(router, "/identify/result");
   };
 

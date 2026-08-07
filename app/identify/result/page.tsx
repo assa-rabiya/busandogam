@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppLink as Link } from "../../components/app-link";
 import { AppShell } from "../../components/app-shell";
@@ -15,12 +15,18 @@ const stepInfo: Array<{ id: AnalysisStep; label: string; icon: string }> = [
 ];
 
 export default function IdentifyResultPage() {
-  const { selectedImage, isReady, isAnalyzing, progress, currentStep, completedSteps, result, error, requiresRetake, clear } = useIdentification();
+  const { selectedImage, isReady, isAnalyzing, progress, currentStep, completedSteps, result, error, requiresRetake, clear, analyze } = useIdentification();
   const router = useRouter();
   const [showCandidates, setShowCandidates] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const hasStarted = useRef(false);
 
-  useEffect(() => { if (isReady && (!selectedImage || (!isAnalyzing && !result && !requiresRetake))) replaceAppRoute(router, "/identify"); }, [isAnalyzing, isReady, requiresRetake, result, router, selectedImage]);
+  useEffect(() => { if (isReady && !selectedImage) replaceAppRoute(router, "/identify"); }, [isReady, router, selectedImage]);
+  useEffect(() => {
+    if (!isReady || !selectedImage || isAnalyzing || result || requiresRetake || hasStarted.current) return;
+    hasStarted.current = true;
+    void analyze();
+  }, [analyze, isAnalyzing, isReady, requiresRetake, result, selectedImage]);
   if (!isReady || !selectedImage) return <div className="page-loading">분석 데이터를 확인하는 중…</div>;
 
   const shootAgain = () => { clear(); pushAppRoute(router, "/identify"); };

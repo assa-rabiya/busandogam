@@ -6,6 +6,7 @@ import { UncertainIdentificationError } from "../services/species-identification
 import type { AnalysisStep, DemoImageId, IdentificationSession, SelectedImage, SpeciesAnalysisResult } from "../types/ai-analysis";
 
 const storageKey = "busan-sea-guide-identification";
+const uploadSessionKey = "busan-sea-guide-identification-upload-session";
 const initialState: IdentificationSession = { selectedImage: null, progress: 0, currentStep: null, completedSteps: [], isAnalyzing: false, result: null, error: null, requiresRetake: false };
 
 interface IdentificationContextValue extends IdentificationSession {
@@ -32,10 +33,10 @@ export function IdentificationProvider({ children }: { children: React.ReactNode
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      const saved = window.localStorage.getItem(storageKey);
+      const saved = window.localStorage.getItem(storageKey) ?? window.sessionStorage.getItem(uploadSessionKey);
       if (saved) {
         const restored = JSON.parse(saved) as Pick<IdentificationSession, "selectedImage" | "result">;
-        if (restored.selectedImage?.kind === "demo") setSession({ ...initialState, ...restored });
+        if (restored.selectedImage) setSession({ ...initialState, ...restored });
       }
       setReady(true);
     }, 0);
@@ -43,8 +44,16 @@ export function IdentificationProvider({ children }: { children: React.ReactNode
   }, []);
 
   const persistDemoSession = useCallback((next: IdentificationSession) => {
-    if (next.selectedImage?.kind === "demo") window.localStorage.setItem(storageKey, JSON.stringify({ selectedImage: next.selectedImage, result: next.result }));
-    else window.localStorage.removeItem(storageKey);
+    if (next.selectedImage?.kind === "demo") {
+      window.localStorage.setItem(storageKey, JSON.stringify({ selectedImage: next.selectedImage, result: next.result }));
+      window.sessionStorage.removeItem(uploadSessionKey);
+    } else if (next.selectedImage) {
+      window.localStorage.removeItem(storageKey);
+      window.sessionStorage.setItem(uploadSessionKey, JSON.stringify({ selectedImage: { ...next.selectedImage, previewUrl: null }, result: next.result }));
+    } else {
+      window.localStorage.removeItem(storageKey);
+      window.sessionStorage.removeItem(uploadSessionKey);
+    }
   }, []);
 
   const selectDemo = useCallback((demoId: DemoImageId) => {
@@ -61,6 +70,7 @@ export function IdentificationProvider({ children }: { children: React.ReactNode
       return { ...initialState, selectedImage: { kind: "upload", id: `upload-${file.name}-${file.size}`, fileName: file.name, previewUrl: URL.createObjectURL(file), imageLabel: "◉", imageTone: "upload", fileSize: file.size } };
     });
     window.localStorage.removeItem(storageKey);
+    window.sessionStorage.setItem(uploadSessionKey, JSON.stringify({ selectedImage: { kind: "upload", id: `upload-${file.name}-${file.size}`, fileName: file.name, previewUrl: null, imageLabel: "사진", imageTone: "upload", fileSize: file.size }, result: null }));
   }, []);
 
   const analyze = useCallback(async () => {
@@ -97,6 +107,7 @@ export function IdentificationProvider({ children }: { children: React.ReactNode
       return initialState;
     });
     window.localStorage.removeItem(storageKey);
+    window.sessionStorage.removeItem(uploadSessionKey);
   }, []);
 
   const value = useMemo(() => ({ ...session, isReady, selectDemo, selectFile, analyze, clear, clearError: () => setSession((current) => ({ ...current, error: null })) }), [analyze, clear, isReady, selectDemo, selectFile, session]);
