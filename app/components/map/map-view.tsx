@@ -46,7 +46,7 @@ export function MapView({ groups, center, zoom, selectedGroupId, currentLocation
   groups: MapMarkerGroup[]; center: MapCenter; zoom: number; selectedGroupId: string | null; currentLocation: Coordinates | null; locationStatus: LocationStatus;
   onSelectGroup: (group: MapMarkerGroup) => void; onReset: () => void; onRequestLocation: () => void; onMovePlace: (placeId: string) => void; onViewportChange: (nextCenter: MapCenter, nextZoom: number) => void; failed: boolean;
 }) {
-  const container = useRef<HTMLDivElement>(null); const map = useRef<LeafletMap | null>(null); const markers = useRef<LeafletMarker[]>([]); const [loadError, setLoadError] = useState(false);
+  const container = useRef<HTMLDivElement>(null); const map = useRef<LeafletMap | null>(null); const markers = useRef<LeafletMarker[]>([]); const [loadError, setLoadError] = useState(false); const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -57,8 +57,11 @@ export function MapView({ groups, center, zoom, selectedGroupId, currentLocation
       L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { minZoom: 8, maxZoom: 19, attribution: "© OpenStreetMap contributors" }).addTo(nextMap);
       nextMap.on("moveend", () => { const next = nextMap.getCenter(); onViewportChange({ latitude: next.lat, longitude: next.lng }, toAppZoom(nextMap.getZoom())); });
       map.current = nextMap;
+      // Leaflet loads asynchronously. Mark the instance ready so the marker
+      // effect runs once immediately instead of waiting for a map movement.
+      setMapReady(true);
     }).catch(() => setLoadError(true));
-    return () => { active = false; map.current?.remove(); map.current = null; };
+    return () => { active = false; setMapReady(false); map.current?.remove(); map.current = null; };
   // The map instance intentionally starts once; later props update it below.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [failed]);
@@ -75,7 +78,7 @@ export function MapView({ groups, center, zoom, selectedGroupId, currentLocation
     if (currentLocation && mockMapAdapter.isInsideBusan(currentLocation.latitude, currentLocation.longitude)) {
       const marker = L.marker([currentLocation.latitude, currentLocation.longitude], { icon: L.divIcon({ className: "", html: '<span class="leaflet-current-marker">●</span>' }) }).addTo(nextMap); markers.current.push(marker);
     }
-  }, [currentLocation, groups, onSelectGroup, selectedGroupId]);
+  }, [currentLocation, groups, mapReady, onSelectGroup, selectedGroupId]);
 
   if (failed || loadError) return <section className="map-error" role="alert"><b>!</b><h2>실제 지도를 불러오지 못했어요</h2><p>인터넷 연결을 확인해 주세요. 발견 목록은 계속 사용할 수 있습니다.</p><button className="outline-action" onClick={onReset}>부산 전체 보기</button></section>;
   return <section className="osm-map" aria-label="OpenStreetMap 기반 부산 발견 지도">
