@@ -1,4 +1,11 @@
-import { existsSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
@@ -24,4 +31,29 @@ if (!existsSync(indexPath)) {
   throw new Error("GitHub Pages 정적 산출물 dist/client/index.html을 찾을 수 없습니다.");
 }
 
+// GitHub Pages can treat framework folders beginning with `_` specially.
+// Publish the compiled Next/Vinext assets under a neutral directory and
+// update every generated reference so CSS and client-side navigation load.
+const nextAssetsPath = join(pagesOutput, "_next");
+const pagesAssetsPath = join(pagesOutput, "assets");
+if (existsSync(nextAssetsPath)) renameSync(nextAssetsPath, pagesAssetsPath);
+
+const rewriteExtensions = new Set([".html", ".js", ".json", ".css"]);
+function rewriteAssetReferences(directory) {
+  for (const name of readdirSync(directory)) {
+    const path = join(directory, name);
+    if (statSync(path).isDirectory()) {
+      rewriteAssetReferences(path);
+      continue;
+    }
+
+    const extension = name.slice(name.lastIndexOf("."));
+    if (!rewriteExtensions.has(extension)) continue;
+    const source = readFileSync(path, "utf8");
+    const rewritten = source.replaceAll("_next/", "assets/");
+    if (rewritten !== source) writeFileSync(path, rewritten);
+  }
+}
+
+rewriteAssetReferences(pagesOutput);
 writeFileSync(join(pagesOutput, ".nojekyll"), "");
