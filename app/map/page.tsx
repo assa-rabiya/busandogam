@@ -11,7 +11,7 @@ import { MapListView } from "../components/map/map-list-view";
 import { MapPopup } from "../components/map/map-popup";
 import { MapView, type LocationStatus } from "../components/map/map-view";
 import { busanPlaces, speciesCatalog } from "../data/discovery-data";
-import { publicMapDiscoveries } from "../data/map-data";
+import { getUnifiedDiscoveries } from "../services/discovery-summary";
 import { mockMapAdapter } from "../services/mock-map-adapter";
 import { replaceAppRoute } from "../client-navigation";
 import type { MapCenter, MapDiscovery, MapFilters, MapMarkerGroup, MapSort, MapStatistics, MapViewMode } from "../types/map";
@@ -59,7 +59,7 @@ export default function MapPage() {
 
   const allRecords = useMemo<MapDiscovery[]>(() => {
     const enrich = (record: (typeof records)[number], source: "mock" | "user", isMine: boolean): MapDiscovery => ({ ...record, source, isMine, ownerLabel: isMine ? "나의 기록" : "부산바다도감 탐험가", species: speciesCatalog.find((item) => item.id === record.speciesId) ?? null });
-    return [...publicMapDiscoveries.map((record) => enrich(record, "mock", false)), ...records.map((record) => enrich(record, "user", true))];
+    return getUnifiedDiscoveries(records).map((record) => enrich(record, record.userId.startsWith("community-") ? "mock" : "user", !record.userId.startsWith("community-")));
   }, [records]);
 
   const filteredRecords = useMemo(() => allRecords.filter((record) => {

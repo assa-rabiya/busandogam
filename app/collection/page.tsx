@@ -8,13 +8,15 @@ import { DiscoveryImage } from "../components/discovery-image";
 import { useDiscoveries } from "../components/discovery-provider";
 import { useAuth } from "../components/auth-provider";
 import { baselineDiscoveredSpeciesIds, speciesCatalog } from "../data/discovery-data";
+import { getUnifiedDiscoveries } from "../services/discovery-summary";
 
 type StatusFilter = "전체" | "발견 완료" | "미발견" | "희귀 생물" | "독성 생물";
 type SortType = "최근 발견순" | "발견 횟수순" | "희귀도순" | "이름순";
 const rarityWeight = { "흔함": 0, "보통": 1, "희귀": 2, "매우 희귀": 3 };
 
 export default function CollectionPage() {
-  const { records, getCollectionEntries } = useDiscoveries();
+  const { records: personalRecords, getCollectionEntries } = useDiscoveries();
+  const records = getUnifiedDiscoveries(personalRecords);
   const { user } = useAuth();
   const [status, setStatus] = useState<StatusFilter>("전체");
   const [category, setCategory] = useState("전체");
@@ -51,7 +53,7 @@ export default function CollectionPage() {
 
   return <ProtectedPage><AppShell>
     <header className="collection-header"><p className="eyebrow">MY SEA COLLECTION</p><h1>나의 바다 도감</h1><p>미발견 생물도 이름과 흑백 사진을 확인할 수 있어 다음 탐험의 목표를 정할 수 있습니다.</p></header>
-    <section className="collection-summary"><article><strong>{discovered}</strong><span>발견한 생물</span></article><article><strong>{speciesCatalog.length}</strong><span>전체 생물</span></article><article><strong>{Math.round((discovered / speciesCatalog.length) * 100)}%</strong><span>달성률</span></article><article><strong>{48 + records.length}</strong><span>총 발견 횟수</span></article><article><strong>{customIds.size}</strong><span>이번 달 새 종</span></article><article><strong>{rareCount}</strong><span>희귀 생물</span></article></section>
+    <section className="collection-summary"><article><strong>{discovered}</strong><span>발견한 생물</span></article><article><strong>{speciesCatalog.length}</strong><span>전체 생물</span></article><article><strong>{Math.round((discovered / speciesCatalog.length) * 100)}%</strong><span>달성률</span></article><article><strong>{records.length}</strong><span>총 발견 횟수</span></article><article><strong>{customIds.size}</strong><span>이번 달 새 종</span></article><article><strong>{rareCount}</strong><span>희귀 생물</span></article></section>
     <section className="collection-controls"><div className="filter-tabs">{(["전체", "발견 완료", "미발견", "희귀 생물", "독성 생물"] as StatusFilter[]).map((item) => <button key={item} className={status === item ? "active" : ""} onClick={() => setStatus(item)}>{item}</button>)}</div><div><select aria-label="카테고리 필터" value={category} onChange={(event) => setCategory(event.target.value)}>{["전체", "어류", "연체동물", "갑각류", "극피동물", "자포동물", "해조류", "기타"].map((item) => <option key={item}>{item}</option>)}</select><select aria-label="도감 정렬" value={sort} onChange={(event) => setSort(event.target.value as SortType)}>{(["최근 발견순", "발견 횟수순", "희귀도순", "이름순"] as SortType[]).map((item) => <option key={item}>{item}</option>)}</select></div></section>
     {items.length === 0 ? <section className="empty-state"><b>⌕</b><h2>조건에 맞는 생물이 없어요</h2><p>필터를 바꾸거나 새로운 관찰 기록을 남겨 보세요.</p></section> : <section className="collection-grid">{items.map(({ species, unlocked, count, first, last, locations }) => <article key={species.id} className={`collection-card ${unlocked ? "" : "locked"}`}>
       <DiscoveryImage label={species.imageLabel} tone={species.imageTone ?? "upload"} name={species.koreanName} />
