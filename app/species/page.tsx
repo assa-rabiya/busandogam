@@ -24,6 +24,8 @@ export default function SpeciesDetailPage() {
   const species = speciesCatalog.find((item) => item.id === speciesId);
   const { getDiscoveriesBySpecies, isReady } = useDiscoveries();
 
+  if (!searchParams.get("id") && !browserQuery.checked) return <div className="page-loading">생물 정보를 불러오는 중…</div>;
+
   if (!isReady) return <div className="page-loading">생물 정보를 불러오는 중…</div>;
   if (!species) return <ProtectedPage><AppShell><section className="not-found"><b>?</b><h1>생물 정보를 찾을 수 없어요</h1><p>도감에서 생물을 선택해 다시 열어 주세요.</p><Link className="primary-action" href="/collection">도감으로 돌아가기</Link></section></AppShell></ProtectedPage>;
 
