@@ -34,9 +34,22 @@ if (!existsSync(indexPath)) {
 // GitHub Pages can treat framework folders beginning with `_` specially.
 // Publish the compiled Next/Vinext assets under a neutral directory and
 // update every generated reference so CSS and client-side navigation load.
-const nextAssetsPath = join(pagesOutput, "_next");
 const pagesAssetsPath = join(pagesOutput, "assets");
-if (existsSync(nextAssetsPath)) renameSync(nextAssetsPath, pagesAssetsPath);
+function findNextAssetsDirectory(directory) {
+  for (const name of readdirSync(directory)) {
+    const path = join(directory, name);
+    if (!statSync(path).isDirectory()) continue;
+    if (name === "_next") return path;
+    const nested = findNextAssetsDirectory(path);
+    if (nested) return nested;
+  }
+  return null;
+}
+
+const nextAssetsPath = findNextAssetsDirectory(pagesOutput);
+if (nextAssetsPath && !existsSync(pagesAssetsPath)) {
+  renameSync(nextAssetsPath, pagesAssetsPath);
+}
 
 const rewriteExtensions = new Set([".html", ".js", ".json", ".css"]);
 function rewriteAssetReferences(directory) {
