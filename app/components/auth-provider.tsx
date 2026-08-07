@@ -52,7 +52,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(safelyReadUser());
       setReady(true);
     }, 0);
-    return () => window.clearTimeout(timer);
+    // A static GitHub Pages document can be restored from the browser cache
+    // before the normal timer gets a chance to run. Never leave protected
+    // screens in an endless "checking login" state in that case.
+    const fallback = window.setTimeout(() => setReady(true), 1200);
+    return () => { window.clearTimeout(timer); window.clearTimeout(fallback); };
   }, []);
 
   const commitLogin = async (nextUser: AppUser) => {
