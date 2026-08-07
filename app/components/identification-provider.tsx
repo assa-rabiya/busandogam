@@ -24,6 +24,13 @@ const demoImages: Record<DemoImageId, Omit<SelectedImage, "previewUrl">> = {
   "purple-urchin": { kind: "demo", id: "demo-purple-urchin", fileName: "demo-purple-urchin.jpg", demoId: "purple-urchin", imageLabel: "✹", imageTone: "urchin" },
   "sea-anemone": { kind: "demo", id: "demo-sea-anemone", fileName: "demo-sea-anemone.jpg", demoId: "sea-anemone", imageLabel: "✺", imageTone: "anemone" },
   rockfish: { kind: "demo", id: "demo-rockfish", fileName: "demo-rockfish.jpg", demoId: "rockfish", imageLabel: "◆", imageTone: "rockfish" },
+  "purple-crab": { kind: "demo", id: "demo-purple-crab", fileName: "demo-purple-crab.jpg", demoId: "purple-crab", imageLabel: "♧", imageTone: "urchin" },
+  "sea-star": { kind: "demo", id: "demo-sea-star", fileName: "demo-sea-star.jpg", demoId: "sea-star", imageLabel: "★", imageTone: "anemone" },
+  "sea-snail": { kind: "demo", id: "demo-sea-snail", fileName: "demo-sea-snail.jpg", demoId: "sea-snail", imageLabel: "◉", imageTone: "rockfish" },
+  octopus: { kind: "demo", id: "demo-octopus", fileName: "demo-octopus.jpg", demoId: "octopus", imageLabel: "◌", imageTone: "anemone" },
+  "night-crab": { kind: "demo", id: "demo-night-crab", fileName: "demo-night-crab.jpg", demoId: "night-crab", imageLabel: "♢", imageTone: "urchin" },
+  kelp: { kind: "demo", id: "demo-kelp", fileName: "demo-kelp.jpg", demoId: "kelp", imageLabel: "♧", imageTone: "upload" },
+  "sea-hare": { kind: "demo", id: "demo-sea-hare", fileName: "demo-sea-hare.jpg", demoId: "sea-hare", imageLabel: "◒", imageTone: "anemone" },
 };
 
 export function IdentificationProvider({ children }: { children: React.ReactNode }) {

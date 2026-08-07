@@ -1,6 +1,6 @@
 import type { Rarity } from "./index";
 
-export type DemoImageId = "purple-urchin" | "sea-anemone" | "rockfish";
+export type DemoImageId = "purple-urchin" | "sea-anemone" | "rockfish" | "purple-crab" | "sea-star" | "sea-snail" | "octopus" | "night-crab" | "kelp" | "sea-hare";
 export type AnalysisStep = "quality" | "shape" | "similarity" | "safety";
 export type RiskLevel = "낮음" | "주의" | "위험";
 

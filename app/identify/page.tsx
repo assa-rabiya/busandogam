@@ -15,6 +15,13 @@ const demos: Array<{ id: DemoImageId; name: string; note: string; label: string;
   { id: "purple-urchin", name: "보라성게", note: "신뢰도 94% 데모", label: "✹", tone: "urchin" },
   { id: "sea-anemone", name: "말미잘", note: "신뢰도 91% 데모", label: "✺", tone: "anemone" },
   { id: "rockfish", name: "쏨뱅이", note: "신뢰도 87% 데모", label: "◆", tone: "rockfish" },
+  { id: "purple-crab", name: "보라게", note: "신뢰도 92% 데모", label: "♧", tone: "urchin" },
+  { id: "sea-star", name: "별불가사리", note: "신뢰도 90% 데모", label: "★", tone: "anemone" },
+  { id: "sea-snail", name: "고둥", note: "신뢰도 93% 데모", label: "◉", tone: "rockfish" },
+  { id: "octopus", name: "문어", note: "신뢰도 89% 데모", label: "◌", tone: "anemone" },
+  { id: "night-crab", name: "밤게", note: "신뢰도 88% 데모", label: "♢", tone: "urchin" },
+  { id: "kelp", name: "미역", note: "신뢰도 90% 데모", label: "♧", tone: "upload" },
+  { id: "sea-hare", name: "군소", note: "신뢰도 86% 데모", label: "◒", tone: "anemone" },
 ];
 
 export default function IdentifyPage() {

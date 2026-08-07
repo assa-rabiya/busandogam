@@ -1,5 +1,6 @@
 import type { BusanPlace } from "../types/discovery";
 import type { Species } from "../types";
+import { extendedSpecies } from "./extended-species";
 
 export const busanPlaces: BusanPlace[] = [
   { id: "dadaepo", name: "다대포해수욕장", latitude: 35.0467, longitude: 128.9654 }, { id: "eulsukdo", name: "을숙도", latitude: 35.1048, longitude: 128.9466 }, { id: "songdo", name: "송도해수욕장", latitude: 35.0756, longitude: 129.0168 }, { id: "taejongdae", name: "태종대", latitude: 35.0531, longitude: 129.0874 }, { id: "igidae", name: "이기대", latitude: 35.1265, longitude: 129.1211 }, { id: "oryukdo", name: "오륙도", latitude: 35.1007, longitude: 129.1201 }, { id: "gwangalli", name: "광안리해수욕장", latitude: 35.1532, longitude: 129.1187 }, { id: "haeundae", name: "해운대해수욕장", latitude: 35.1587, longitude: 129.1604 }, { id: "cheongsapo", name: "청사포", latitude: 35.1619, longitude: 129.1911 }, { id: "songjeong", name: "송정해수욕장", latitude: 35.1786, longitude: 129.1997 }, { id: "daebyeon", name: "기장 대변항", latitude: 35.2258, longitude: 129.2286 }, { id: "ilgwang", name: "일광해수욕장", latitude: 35.2594, longitude: 129.2339 },
@@ -15,6 +16,7 @@ export const speciesCatalog: Species[] = [
   { id: "sea-snail", koreanName: "고둥", scientificName: "Littorina brevicula", category: "연체동물", rarity: "흔함", imageLabel: "◉", imageTone: "rockfish", toxic: false, riskLevel: "낮음", touchable: false, description: "조간대 바위 표면을 천천히 이동하는 연체동물입니다.", features: ["나선형 껍데기"], habitat: "바위틈", activeSeasons: ["사계절"], commonLocations: ["이기대", "태종대"], precautions: ["채집하지 말고 사진으로 기록하세요."], monthlyAppearance: [6,6,7,8,8,9,9,9,8,7,6,6] },
   { id: "octopus", koreanName: "문어", scientificName: "Octopus vulgaris", category: "연체동물", rarity: "희귀", imageLabel: "●", imageTone: "anemone", toxic: false, riskLevel: "주의", touchable: false, description: "영리하고 위장 능력이 뛰어난 연체동물입니다.", features: ["여덟 개의 팔", "빠른 체색 변화"], habitat: "암반 수중", activeSeasons: ["여름", "가을"], commonLocations: ["기장 대변항"], precautions: ["잡거나 자극하지 마세요."], monthlyAppearance: [1,1,2,3,5,7,9,10,9,6,3,1] },
   { id: "kelp", koreanName: "미역", scientificName: "Undaria pinnatifida", category: "해조류", rarity: "흔함", imageLabel: "≈", imageTone: "upload", toxic: false, riskLevel: "낮음", touchable: false, description: "부산의 얕은 바다에서 자라는 갈조류입니다.", features: ["넓고 물결치는 잎"], habitat: "얕은 바다", activeSeasons: ["겨울", "봄"], commonLocations: ["기장", "송정"], precautions: ["양식장과 자연 군락을 훼손하지 마세요."], monthlyAppearance: [10,10,9,8,5,2,1,1,2,4,7,9] },
+  ...extendedSpecies,
 ];
 
 export const baselineDiscoveredSpeciesIds = ["purple-crab", "sea-star", "sea-snail", "octopus", "night-crab"];
