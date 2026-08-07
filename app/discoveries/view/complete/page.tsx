@@ -1,18 +1,32 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { AppShell } from "../../../components/app-shell";
 import { ProtectedPage } from "../../../components/protected-page";
 import { DiscoveryImage } from "../../../components/discovery-image";
 import { useDiscoveries } from "../../../components/discovery-provider";
 import { withBasePath } from "../../../base-path";
+import { AppLink as Link } from "../../../components/app-link";
+import type { Discovery } from "../../../types/discovery";
+
+function getLastSavedDiscovery(): Discovery | undefined {
+  try {
+    const raw = window.sessionStorage.getItem("busan-sea-guide-last-discovery");
+    if (!raw) return undefined;
+    const record = JSON.parse(raw) as Partial<Discovery>;
+    return record.id && record.speciesId && record.locationName ? record as Discovery : undefined;
+  } catch {
+    window.sessionStorage.removeItem("busan-sea-guide-last-discovery");
+    return undefined;
+  }
+}
 
 export default function DiscoveryCompletePage() {
   const searchParams = useSearchParams();
   const recordId = searchParams.get("id");
   const { getDiscovery, records, getCollectionEntries, isReady } = useDiscoveries();
-  const record = recordId ? getDiscovery(recordId) : undefined;
+  const lastSavedRecord = typeof window === "undefined" ? undefined : getLastSavedDiscovery();
+  const record = recordId ? getDiscovery(recordId) ?? (lastSavedRecord?.id === recordId ? lastSavedRecord : undefined) : lastSavedRecord;
   if (!isReady) return <div className="page-loading">저장 결과를 불러오는 중…</div>;
   if (!record) return <ProtectedPage><AppShell><section className="not-found"><b>?</b><h1>저장 결과를 찾을 수 없어요</h1><p>이 기기에 저장된 기록만 확인할 수 있습니다.</p><Link className="primary-action" href="/collection">내 도감으로 이동</Link></section></AppShell></ProtectedPage>;
   const collectionCount = getCollectionEntries().length;

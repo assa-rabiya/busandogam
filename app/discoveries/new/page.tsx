@@ -17,6 +17,14 @@ const tides: TideState[] = ["만조", "썰물 진행 중", "간조", "밀물 진
 const today = () => new Date().toISOString().slice(0, 10);
 const nowTime = () => new Date().toTimeString().slice(0, 5);
 
+function nearestBusanPlaceName(latitude: number, longitude: number) {
+  const nearest = busanPlaces.reduce((closest, place) => {
+    const distance = (place.latitude - latitude) ** 2 + (place.longitude - longitude) ** 2;
+    return distance < closest.distance ? { place, distance } : closest;
+  }, { place: busanPlaces[0], distance: Number.POSITIVE_INFINITY });
+  return `현재 위치 · ${nearest.place.name} 인근`;
+}
+
 export default function NewDiscoveryPage() {
   const { result, selectedImage, isReady: identificationReady } = useIdentification();
   const { createDiscovery, isSaving, error: saveError, clearError } = useDiscoveries();
@@ -25,6 +33,13 @@ export default function NewDiscoveryPage() {
   const [date, setDate] = useState(today); const [time, setTime] = useState(nowTime); const [size, setSize] = useState(""); const [sizeUnit, setSizeUnit] = useState<SizeUnit>("cm");
   const [environment, setEnvironment] = useState<DiscoveryEnvironment | "">(""); const [weather, setWeather] = useState<DiscoveryWeather>("맑음"); const [tide, setTide] = useState<TideState>("알 수 없음"); const [memo, setMemo] = useState(""); const [visibility, setVisibility] = useState<DiscoveryVisibility>("public");
   const [formError, setFormError] = useState<string | null>(null); const [geoState, setGeoState] = useState<"idle" | "loading" | "success" | "error">("idle"); const [geoMessage, setGeoMessage] = useState("");
+  useEffect(() => {
+    if (geoState !== "success" || latitude === null || longitude === null) return;
+    const timer = window.setTimeout(() => {
+      setLocationName(nearestBusanPlaceName(latitude, longitude));
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [geoState, latitude, longitude]);
   useEffect(() => { if (identificationReady && (!result || !selectedImage)) replaceAppRoute(router, "/identify"); }, [identificationReady, result, router, selectedImage]);
   const candidates = useMemo(() => result ? [result, ...result.candidates.filter((candidate) => candidate.id !== result.id)] : [], [result]);
   const species = candidates.find((candidate) => candidate.id === speciesId) ?? result;

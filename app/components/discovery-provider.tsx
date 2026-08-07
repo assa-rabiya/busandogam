@@ -55,7 +55,11 @@ export function DiscoveryProvider({ children }: { children: React.ReactNode }) {
       if (draft.memo.includes("#저장실패")) throw new Error("발표용 저장 실패 상태가 실행되었습니다.");
       const score = calculateDiscoveryScore(draft, records);
       const record: Discovery = { ...draft, id: globalThis.crypto?.randomUUID?.() ?? `discovery-${Date.now()}`, scoreAwarded: score.score, duplicateWarning: score.duplicateWarning, isNewSpecies: score.isNewSpecies, createdAt: new Date().toISOString() };
-      const next = [record, ...records]; persist(next); setRecords(next); return record;
+      const next = [record, ...records]; persist(next); setRecords(next);
+      // GitHub Pages는 저장 완료 화면으로 전체 문서 이동을 한다. 방금 저장한
+      // 기록은 세션에도 보관해 localStorage 복원이 늦어져도 즉시 표시한다.
+      window.sessionStorage.setItem("busan-sea-guide-last-discovery", JSON.stringify(record));
+      return record;
     } catch (cause) { const message = cause instanceof Error ? cause.message : "기록 저장에 실패했어요."; setError(message); throw cause; }
     finally { saveLock.current = false; setSaving(false); }
   }, [persist, records]);
