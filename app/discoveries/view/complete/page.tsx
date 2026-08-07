@@ -2,7 +2,8 @@
 
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { AppShell, ProtectedPage } from "../../../components/app-shell";
+import { AppShell } from "../../../components/app-shell";
+import { ProtectedPage } from "../../../components/protected-page";
 import { DiscoveryImage } from "../../../components/discovery-image";
 import { useDiscoveries } from "../../../components/discovery-provider";
 import { withBasePath } from "../../../base-path";
