@@ -22,8 +22,10 @@ declare global { interface Window { L?: LeafletApi; } }
 const leafletScript = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
 const leafletStylesheet = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
 const categoryIcons: Record<string, string> = { "어류": "◇", "연체동물": "◉", "갑각류": "♢", "극피동물": "✦", "자포동물": "✺", "해조류": "≋", "기타": "●" };
-const toLeafletZoom = (zoom: number) => Math.max(11, Math.min(15, Math.round(12 + (zoom - 1) * 2)));
-const toAppZoom = (zoom: number) => Math.max(.75, Math.min(2.4, 1 + (zoom - 12) / 2));
+// Keep the default view close to Busan, while allowing users to zoom out to
+// see the broader southeast coast and zoom in for a single discovery.
+const toLeafletZoom = (zoom: number) => Math.max(8, Math.min(18, Math.round(10 + zoom * 2)));
+const toAppZoom = (zoom: number) => Math.max(-1, Math.min(4, (zoom - 10) / 2));
 
 function loadLeaflet() {
   if (window.L) return Promise.resolve(window.L);
@@ -51,8 +53,8 @@ export function MapView({ groups, center, zoom, selectedGroupId, currentLocation
     if (!container.current || failed) return;
     void loadLeaflet().then((L) => {
       if (!active || !container.current) return;
-      const nextMap = L.map(container.current, { zoomControl: true, attributionControl: true }).setView([center.latitude, center.longitude], toLeafletZoom(zoom));
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap contributors" }).addTo(nextMap);
+      const nextMap = L.map(container.current, { zoomControl: true, attributionControl: true, minZoom: 8, maxZoom: 18 }).setView([center.latitude, center.longitude], toLeafletZoom(zoom));
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { minZoom: 8, maxZoom: 19, attribution: "© OpenStreetMap contributors" }).addTo(nextMap);
       nextMap.on("moveend", () => { const next = nextMap.getCenter(); onViewportChange({ latitude: next.lat, longitude: next.lng }, toAppZoom(nextMap.getZoom())); });
       map.current = nextMap;
     }).catch(() => setLoadError(true));

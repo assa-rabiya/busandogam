@@ -9,10 +9,10 @@ export const species: Species[] = [
   { id: "octopus", koreanName: "문어", scientificName: "Octopus vulgaris", category: "연체동물", rarity: "보통", imageLabel: "🐙" },
 ];
 export const locations: Location[] = [
-  { id: "dadaepo", name: "다대포 갯벌", district: "사하구", habitat: "갯벌", imageLabel: "🌾", speciesHint: "게 · 조개 · 갯지렁이", bestTime: "간조 2시간 전", difficulty: "쉬움" },
-  { id: "igidae", name: "이기대 해안", district: "남구", habitat: "암반 해안", imageLabel: "🪨", speciesHint: "고둥 · 불가사리", bestTime: "오전 8–10시", difficulty: "보통" },
-  { id: "cheongsapo", name: "청사포", district: "해운대구", habitat: "방파제", imageLabel: "🌊", speciesHint: "말미잘 · 보라게", bestTime: "오후 4–6시", difficulty: "보통" },
-  { id: "daebyeon", name: "기장 대변항", district: "기장군", habitat: "항구", imageLabel: "⚓", speciesHint: "문어 · 해삼 · 성게", bestTime: "오전 7–9시", difficulty: "쉬움" },
+  { id: "dadaepo", name: "다대포 갯벌", district: "사하구", habitat: "갯벌", imageLabel: "🌾", imageUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=85", speciesHint: "게 · 조개 · 갯지렁이", bestTime: "간조 2시간 전", difficulty: "쉬움" },
+  { id: "igidae", name: "이기대 해안", district: "남구", habitat: "암반 해안", imageLabel: "🪨", imageUrl: "https://images.unsplash.com/photo-1498623116890-37e912163d5d?auto=format&fit=crop&w=900&q=85", speciesHint: "고둥 · 불가사리", bestTime: "오전 8–10시", difficulty: "보통" },
+  { id: "cheongsapo", name: "청사포", district: "해운대구", habitat: "방파제", imageLabel: "🌊", imageUrl: "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=900&q=85", speciesHint: "말미잘 · 보라게", bestTime: "오후 4–6시", difficulty: "보통" },
+  { id: "daebyeon", name: "기장 대변항", district: "기장군", habitat: "항구", imageLabel: "⚓", imageUrl: "https://images.unsplash.com/photo-1473116763249-2faaef81ccda?auto=format&fit=crop&w=900&q=85", speciesHint: "문어 · 해삼 · 성게", bestTime: "오전 7–9시", difficulty: "쉬움" },
 ];
 export const recentDiscoveries: RecentDiscovery[] = [
   { id: "d1", speciesName: "보라게", location: "청사포", discoveredAt: "오늘 10:24", rarity: "보통", imageLabel: "🦀" },

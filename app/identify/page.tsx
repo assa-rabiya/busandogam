@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useRef } from "react";
+import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import { AppShell } from "../components/app-shell";
 import { ProtectedPage } from "../components/protected-page";
@@ -23,7 +24,13 @@ export default function IdentifyPage() {
   const fileInput = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const chooseFile = (file?: File) => { if (file) { clearError(); selectFile(file); } };
-  const startAnalysis = () => { if (!selectedImage) return; void analyze(); pushAppRoute(router, "/identify/result"); };
+  const startAnalysis = () => {
+    if (!selectedImage) return;
+    // Commit the analysis state before routing so the result screen never
+    // mistakes an in-progress session for a missing session.
+    flushSync(() => { void analyze(); });
+    pushAppRoute(router, "/identify/result");
+  };
 
   return <ProtectedPage><AppShell>
     <header className="identify-heading"><p className="eyebrow">AI SPECIES FINDER</p><h1>바다 생물 사진을<br />선택해 주세요</h1><p>몸 전체와 무늬가 선명하게 보이는 사진일수록 더 정확한 후보를 안내할 수 있어요.</p></header>
