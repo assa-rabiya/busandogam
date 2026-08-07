@@ -12,7 +12,7 @@ const initialState: IdentificationSession = { selectedImage: null, progress: 0, 
 interface IdentificationContextValue extends IdentificationSession {
   isReady: boolean;
   selectDemo: (demoId: DemoImageId) => void;
-  selectFile: (file: File) => void;
+  selectFile: (file: File) => Promise<void>;
   analyze: () => Promise<boolean>;
   clear: () => void;
   clearError: () => void;
@@ -49,7 +49,11 @@ export function IdentificationProvider({ children }: { children: React.ReactNode
       window.sessionStorage.removeItem(uploadSessionKey);
     } else if (next.selectedImage) {
       window.localStorage.removeItem(storageKey);
-      window.sessionStorage.setItem(uploadSessionKey, JSON.stringify({ selectedImage: { ...next.selectedImage, previewUrl: null }, result: next.result }));
+      try {
+        window.sessionStorage.setItem(uploadSessionKey, JSON.stringify({ selectedImage: next.selectedImage, result: next.result }));
+      } catch {
+        window.sessionStorage.removeItem(uploadSessionKey);
+      }
     } else {
       window.localStorage.removeItem(storageKey);
       window.sessionStorage.removeItem(uploadSessionKey);
@@ -62,15 +66,34 @@ export function IdentificationProvider({ children }: { children: React.ReactNode
     persistDemoSession(next);
   }, [persistDemoSession]);
 
-  const selectFile = useCallback((file: File) => {
+  const selectFile = useCallback(async (file: File) => {
     if (!(["image/jpeg", "image/png", "image/webp"] as string[]).includes(file.type)) { setSession((current) => ({ ...current, error: "JPG, PNG, WEBP 이미지 파일만 사용할 수 있어요." })); return; }
     if (file.size > 10 * 1024 * 1024) { setSession((current) => ({ ...current, error: "이미지는 10MB 이하로 선택해 주세요." })); return; }
+    let previewUrl: string;
+    try {
+      previewUrl = await readFileAsDataUrl(file);
+    } catch {
+      setSession((current) => ({ ...current, error: "사진을 불러오지 못했습니다. 다른 사진을 선택해 주세요." }));
+      return;
+    }
     setSession((current) => {
       if (current.selectedImage?.kind === "upload" && current.selectedImage.previewUrl) URL.revokeObjectURL(current.selectedImage.previewUrl);
       return { ...initialState, selectedImage: { kind: "upload", id: `upload-${file.name}-${file.size}`, fileName: file.name, previewUrl: URL.createObjectURL(file), imageLabel: "◉", imageTone: "upload", fileSize: file.size } };
     });
+    setSession((current) => current.selectedImage?.kind === "upload" ? {
+      ...current,
+      selectedImage: { ...current.selectedImage, previewUrl, imageLabel: "사진" },
+    } : current);
     window.localStorage.removeItem(storageKey);
     window.sessionStorage.setItem(uploadSessionKey, JSON.stringify({ selectedImage: { kind: "upload", id: `upload-${file.name}-${file.size}`, fileName: file.name, previewUrl: null, imageLabel: "사진", imageTone: "upload", fileSize: file.size }, result: null }));
+    try {
+      window.sessionStorage.setItem(uploadSessionKey, JSON.stringify({
+        selectedImage: { kind: "upload", id: `upload-${file.name}-${file.size}`, fileName: file.name, previewUrl, imageLabel: "사진", imageTone: "upload", fileSize: file.size },
+        result: null,
+      }));
+    } catch {
+      setSession((current) => ({ ...current, error: "사진이 너무 커서 분석 화면으로 보관할 수 없습니다. 더 작은 사진을 선택해 주세요." }));
+    }
   }, []);
 
   const analyze = useCallback(async () => {
@@ -117,6 +140,15 @@ export function IdentificationProvider({ children }: { children: React.ReactNode
 function stepsBefore(step: AnalysisStep): AnalysisStep[] {
   const ordered: AnalysisStep[] = ["quality", "shape", "similarity", "safety"];
   return ordered.slice(0, ordered.indexOf(step));
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error);
+    reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("image-read-failed"));
+    reader.readAsDataURL(file);
+  });
 }
 
 export function useIdentification() {
