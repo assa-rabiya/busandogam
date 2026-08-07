@@ -1,9 +1,9 @@
 import type { CommunityComment, CommunityPost } from "../types/community";
 
-type PostRow = { id: string; author_key: string; author_name: string; title: string; content: string; created_at: string; discovery_id: string | null; species_name: string | null; species_image_label: string | null; species_image_tone: string | null; location_name: string | null; };
+type PostRow = { id: string; author_key: string; author_name: string; title: string; content: string; created_at: string; discovery_id: string | null; species_name: string | null; species_image_label: string | null; species_image_tone: string | null; location_name: string | null; category: "discovery" | "knowhow" | "safety" | null; };
 type CommentRow = { id: string; post_id: string; author_name: string; content: string; created_at: string; };
 type LikeRow = { post_id: string; author_key: string; };
-type RemotePostDraft = Omit<CommunityPost, "id" | "author" | "createdAt" | "likes" | "comments">;
+type RemotePostDraft = Omit<CommunityPost, "id" | "authorKey" | "author" | "createdAt" | "likes" | "comments">;
 
 const baseUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, "");
 const publicKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -19,7 +19,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.status === 204 ? undefined as T : response.json() as Promise<T>;
 }
 function toPost(row: PostRow, comments: CommentRow[], likes: LikeRow[]): CommunityPost {
-  return { id: row.id, author: row.author_name, title: row.title, content: row.content, createdAt: row.created_at, discoveryId: row.discovery_id ?? undefined, speciesName: row.species_name ?? undefined, speciesImageLabel: row.species_image_label ?? undefined, speciesImageTone: row.species_image_tone ?? undefined, locationName: row.location_name ?? undefined, likes: likes.filter((like) => like.post_id === row.id).map((like) => like.author_key), comments: comments.filter((comment) => comment.post_id === row.id).map((comment): CommunityComment => ({ id: comment.id, author: comment.author_name, content: comment.content, createdAt: comment.created_at })) };
+  return { id: row.id, authorKey: row.author_key, author: row.author_name, title: row.title, content: row.content, createdAt: row.created_at, discoveryId: row.discovery_id ?? undefined, speciesName: row.species_name ?? undefined, speciesImageLabel: row.species_image_label ?? undefined, speciesImageTone: row.species_image_tone ?? undefined, locationName: row.location_name ?? undefined, category: row.category ?? "discovery", likes: likes.filter((like) => like.post_id === row.id).map((like) => like.author_key), comments: comments.filter((comment) => comment.post_id === row.id).map((comment): CommunityComment => ({ id: comment.id, author: comment.author_name, content: comment.content, createdAt: comment.created_at })) };
 }
 
 export const communityRepository = {
@@ -33,7 +33,7 @@ export const communityRepository = {
     return posts.map((post) => toPost(post, comments, likes));
   },
   async createPost(draft: RemotePostDraft, author: string, authorKey: string): Promise<void> {
-    await request("community_posts", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ author_key: authorKey, author_name: author, title: draft.title, content: draft.content, discovery_id: draft.discoveryId ?? null, species_name: draft.speciesName ?? null, species_image_label: draft.speciesImageLabel ?? null, species_image_tone: draft.speciesImageTone ?? null, location_name: draft.locationName ?? null, visibility: "public" }) });
+    await request("community_posts", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ author_key: authorKey, author_name: author, title: draft.title, content: draft.content, discovery_id: draft.discoveryId ?? null, species_name: draft.speciesName ?? null, species_image_label: draft.speciesImageLabel ?? null, species_image_tone: draft.speciesImageTone ?? null, location_name: draft.locationName ?? null, category: draft.category ?? "discovery", visibility: "public" }) });
   },
   async toggleLike(postId: string, authorKey: string, liked: boolean): Promise<void> {
     if (liked) { await request(`community_likes?post_id=eq.${encodeURIComponent(postId)}&author_key=eq.${encodeURIComponent(authorKey)}`, { method: "DELETE" }); return; }
@@ -41,5 +41,8 @@ export const communityRepository = {
   },
   async addComment(postId: string, author: string, content: string): Promise<void> {
     await request("community_comments", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ post_id: postId, author_name: author, content }) });
+  },
+  async deletePost(postId: string, authorKey: string): Promise<void> {
+    await request(`community_posts?id=eq.${encodeURIComponent(postId)}&author_key=eq.${encodeURIComponent(authorKey)}`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
   },
 };

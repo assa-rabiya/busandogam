@@ -7,6 +7,8 @@ export interface CommunityComment {
 
 export interface CommunityPost {
   id: string;
+  /** Device-local identifier used only to decide whether the delete control is shown. */
+  authorKey?: string;
   author: string;
   title: string;
   content: string;
@@ -16,6 +18,7 @@ export interface CommunityPost {
   speciesImageLabel?: string;
   speciesImageTone?: string;
   locationName?: string;
+  category?: "discovery" | "knowhow" | "safety";
   likes: string[];
   comments: CommunityComment[];
 }
