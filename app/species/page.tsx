@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { speciesCatalog } from "../data/discovery-data";
 import { AppShell } from "../components/app-shell";
@@ -12,7 +13,14 @@ const months = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", 
 
 export default function SpeciesDetailPage() {
   const searchParams = useSearchParams();
-  const speciesId = searchParams.get("id");
+  const [browserQuery, setBrowserQuery] = useState<{ checked: boolean; speciesId: string | null }>({ checked: false, speciesId: null });
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setBrowserQuery({ checked: true, speciesId: new URLSearchParams(window.location.search).get("id") });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+  const speciesId = searchParams.get("id") ?? browserQuery.speciesId;
   const species = speciesCatalog.find((item) => item.id === speciesId);
   const { getDiscoveriesBySpecies, isReady } = useDiscoveries();
 
