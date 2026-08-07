@@ -6,6 +6,7 @@ import { AppShell } from "../components/app-shell";
 import { ProtectedPage } from "../components/protected-page";
 import { DiscoveryImage } from "../components/discovery-image";
 import { useDiscoveries } from "../components/discovery-provider";
+import { useAuth } from "../components/auth-provider";
 import { baselineDiscoveredSpeciesIds, speciesCatalog } from "../data/discovery-data";
 
 type StatusFilter = "전체" | "발견 완료" | "미발견" | "희귀 생물" | "독성 생물";
@@ -14,16 +15,18 @@ const rarityWeight = { "흔함": 0, "보통": 1, "희귀": 2, "매우 희귀": 3
 
 export default function CollectionPage() {
   const { records, getCollectionEntries } = useDiscoveries();
+  const { user } = useAuth();
   const [status, setStatus] = useState<StatusFilter>("전체");
   const [category, setCategory] = useState("전체");
   const [sort, setSort] = useState<SortType>("최근 발견순");
   const entries = getCollectionEntries();
   const customIds = new Set(entries.map((entry) => entry.speciesId));
-  const unlockedIds = new Set([...baselineDiscoveredSpeciesIds, ...customIds]);
+  const usesDemoBaseline = user?.accountType !== "guest";
+  const unlockedIds = new Set([...(usesDemoBaseline ? baselineDiscoveredSpeciesIds : []), ...customIds]);
 
   const items = useMemo(() => speciesCatalog.map((species) => {
     const entry = entries.find((item) => item.speciesId === species.id);
-    const baseline = baselineDiscoveredSpeciesIds.includes(species.id);
+    const baseline = usesDemoBaseline && baselineDiscoveredSpeciesIds.includes(species.id);
     return {
       species,
       unlocked: baseline || Boolean(entry),
@@ -41,7 +44,7 @@ export default function CollectionPage() {
     .sort((a, b) => sort === "발견 횟수순" ? b.count - a.count
       : sort === "희귀도순" ? rarityWeight[b.species.rarity] - rarityWeight[a.species.rarity]
       : sort === "이름순" ? a.species.koreanName.localeCompare(b.species.koreanName, "ko")
-      : b.last.localeCompare(a.last)), [category, entries, sort, status]);
+      : b.last.localeCompare(a.last)), [category, entries, sort, status, usesDemoBaseline]);
 
   const discovered = unlockedIds.size;
   const rareCount = speciesCatalog.filter((item) => unlockedIds.has(item.id) && ["희귀", "매우 희귀"].includes(item.rarity)).length;

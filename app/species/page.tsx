@@ -6,7 +6,7 @@ import { AppShell } from "../components/app-shell";
 import { ProtectedPage } from "../components/protected-page";
 import { DiscoveryImage } from "../components/discovery-image";
 import { useDiscoveries } from "../components/discovery-provider";
-import Link from "next/link";
+import { AppLink as Link } from "../components/app-link";
 
 const months = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
 
