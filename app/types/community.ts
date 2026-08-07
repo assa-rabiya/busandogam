@@ -1,5 +1,7 @@
 export interface CommunityComment {
   id: string;
+  /** Device-local owner key; only the author sees the delete control. */
+  authorKey?: string;
   author: string;
   content: string;
   createdAt: string;
