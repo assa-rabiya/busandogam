@@ -23,6 +23,7 @@ declare global { interface Window { L?: LeafletApi; } }
 const leafletScript = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
 const leafletStylesheet = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
 const categoryIcons: Record<string, string> = { "어류": "◇", "연체동물": "◉", "갑각류": "♢", "극피동물": "✦", "자포동물": "✺", "해조류": "≋", "기타": "●" };
+const speciesIcons: Record<string, string> = { "purple-urchin": "🟣", "sea-anemone": "🌸", rockfish: "🐡", "purple-crab": "🦀", "night-crab": "🦀", "sea-star": "⭐", "sea-snail": "🐚", octopus: "🐙", kelp: "🌿", "sea-hare": "🐌", "sea-cucumber": "🥒", "blue-mussel": "🦪", barnacle: "◉", "shore-crab": "🦀", "hermit-crab": "🐚", "sea-squirt": "🟠", sargassum: "🌿", flatfish: "🐟", "tidepool-goby": "🐟" };
 // Keep the default view close to Busan, while allowing users to zoom out to
 // see the broader southeast coast and zoom in for a single discovery.
 const toLeafletZoom = (zoom: number) => Math.max(8, Math.min(18, Math.round(10 + zoom * 2)));
@@ -76,7 +77,7 @@ export function MapView({ groups, center, zoom, selectedGroupId, currentLocation
     const L = window.L; const nextMap = map.current; if (!L || !nextMap) return;
     markers.current.forEach((marker) => marker.remove()); markers.current = [];
     groups.forEach((group) => {
-      const representative = group.records[0]; const icon = categoryIcons[representative.species?.category ?? "기타"] ?? "●";
+      const representative = group.records[0]; const icon = speciesIcons[representative.speciesId] ?? categoryIcons[representative.species?.category ?? "기타"] ?? "●";
       const marker = L.marker([group.latitude, group.longitude], { icon: L.divIcon({ className: "", html: `<span class="leaflet-discovery-marker ${selectedGroupId === group.id ? "selected" : ""}">${icon}${group.records.length > 1 ? `<b>${group.records.length}</b>` : ""}</span>` }) }).addTo(nextMap);
       marker.setZIndexOffset(selectedGroupId === group.id ? 1000 : 0); marker.on("click", () => onSelectGroup(group)); markers.current.push(marker);
     });
