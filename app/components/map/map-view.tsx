@@ -9,6 +9,7 @@ export type LocationStatus = "idle" | "loading" | "success" | "denied" | "unsupp
 
 type LeafletMap = {
   setView: (coords: [number, number], zoom: number, options?: { animate?: boolean }) => LeafletMap;
+  invalidateSize: (options?: { animate?: boolean; pan?: boolean }) => LeafletMap;
   getCenter: () => { lat: number; lng: number };
   getZoom: () => number;
   on: (event: string, listener: () => void) => void;
@@ -60,6 +61,10 @@ export function MapView({ groups, center, zoom, selectedGroupId, currentLocation
       // Leaflet loads asynchronously. Mark the instance ready so the marker
       // effect runs once immediately instead of waiting for a map movement.
       setMapReady(true);
+      // Leaflet can calculate a zero/old container size while this page is
+      // mounting. Recalculate after layout so tile and marker layers paint
+      // without requiring the visitor to drag the map first.
+      window.requestAnimationFrame(() => { if (active) nextMap.invalidateSize({ animate: false, pan: false }); });
     }).catch(() => setLoadError(true));
     return () => { active = false; setMapReady(false); map.current?.remove(); map.current = null; };
   // The map instance intentionally starts once; later props update it below.

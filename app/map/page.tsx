@@ -111,7 +111,7 @@ export default function MapPage() {
       handledQuery.current = `place:${requestedPlaceId}`;
       if (!place) { setNotice("요청한 탐험지를 찾을 수 없어 부산 전체 지도를 표시합니다."); return; }
       setCenter({ latitude: place.latitude, longitude: place.longitude });
-      setZoom(2.15);
+      setZoom(2.45);
       setViewMode("map");
       setSelectedGroupId(null);
       setSelectedRecordId(null);
