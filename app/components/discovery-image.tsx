@@ -24,10 +24,13 @@ export function DiscoveryImage({ label, tone, name, className = "" }: { label: s
     if (!scientificName) { setObservedPhoto(null); return; }
     let active = true;
     setObservedPhoto(null);
-    void fetch(`https://api.inaturalist.org/v1/observations?taxon_name=${encodeURIComponent(scientificName)}&photos=true&per_page=1&order=desc`)
+    // Taxon default_photo is tied to the exact scientific name. Observation
+    // search can return a nearby/incorrect observation, so do not use it here.
+    void fetch(`https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(scientificName)}&rank=species&per_page=10`)
       .then((response) => response.ok ? response.json() : null)
       .then((data) => {
-        const url = data?.results?.[0]?.photos?.[0]?.url;
+        const taxon = data?.results?.find((item: { name?: string }) => item.name === scientificName);
+        const url = taxon?.default_photo?.medium_url ?? taxon?.default_photo?.original_url;
         if (active && typeof url === "string") setObservedPhoto(url.replace("square", "large"));
       })
       .catch(() => undefined);
