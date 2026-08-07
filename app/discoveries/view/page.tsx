@@ -1,17 +1,25 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { AppShell } from "../../components/app-shell";
 import { ProtectedPage } from "../../components/protected-page";
 import { DiscoveryImage } from "../../components/discovery-image";
 import { useDiscoveries } from "../../components/discovery-provider";
 import { publicMapDiscoveries } from "../../data/map-data";
 import { withBasePath } from "../../base-path";
+import { AppLink as Link } from "../../components/app-link";
 
 export default function DiscoveryDetailPage() {
   const searchParams = useSearchParams();
-  const recordId = searchParams.get("id");
+  const [browserRecordId, setBrowserRecordId] = useState<string | null>(null);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setBrowserRecordId(new URLSearchParams(window.location.search).get("id") ?? window.sessionStorage.getItem("busan-sea-guide-selected-discovery"));
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+  const recordId = searchParams.get("id") ?? browserRecordId;
   const { getDiscovery, isReady } = useDiscoveries();
   const record = recordId ? getDiscovery(recordId) ?? publicMapDiscoveries.find((item) => item.id === recordId) : undefined;
   if (!isReady) return <div className="page-loading">기록을 불러오는 중…</div>;
