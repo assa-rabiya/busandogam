@@ -3,6 +3,8 @@ import {
   readFileSync,
   readdirSync,
   cpSync,
+  copyFileSync,
+  mkdirSync,
   statSync,
   writeFileSync,
 } from "node:fs";
@@ -72,4 +74,25 @@ function rewriteAssetReferences(directory) {
 }
 
 rewriteAssetReferences(pagesOutput);
+
+// Vinext exports route documents as `login.html` and `identify/result.html`.
+// GitHub Pages serves directory URLs such as `/login/` from `login/index.html`,
+// so create matching directory documents for every route. This keeps direct
+// visits and browser navigation from returning GitHub Pages' 404 document.
+function createDirectoryRouteDocuments(directory, relative = "") {
+  for (const name of readdirSync(directory)) {
+    const path = join(directory, name);
+    if (statSync(path).isDirectory()) {
+      if (name !== "assets" && name !== "_next") createDirectoryRouteDocuments(path, join(relative, name));
+      continue;
+    }
+    if (!name.endsWith(".html") || name === "index.html" || name === "404.html") continue;
+    const routeName = name.slice(0, -".html".length);
+    const destination = join(pagesOutput, relative, routeName, "index.html");
+    mkdirSync(join(pagesOutput, relative, routeName), { recursive: true });
+    copyFileSync(path, destination);
+  }
+}
+
+createDirectoryRouteDocuments(pagesOutput);
 writeFileSync(join(pagesOutput, ".nojekyll"), "");
