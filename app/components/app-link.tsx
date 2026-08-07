@@ -1,5 +1,5 @@
 import type { AnchorHTMLAttributes, ReactNode } from "react";
-import { withBasePath } from "../base-path";
+import { withAppRouteBasePath } from "../base-path";
 
 type AppLinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & {
   href: string;
@@ -7,5 +7,5 @@ type AppLinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & {
 };
 
 export function AppLink({ href, children, ...props }: AppLinkProps) {
-  return <a href={withBasePath(href)} {...props}>{children}</a>;
+  return <a href={withAppRouteBasePath(href)} {...props}>{children}</a>;
 }
