@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { communityRepository, isRemoteCommunityEnabled } from "../services/community-repository";
 import type { CommunityPost } from "../types/community";
 import { useAuth } from "./auth-provider";
@@ -21,6 +21,9 @@ function getAuthorKey() { const key = "busan-sea-guide-community-visitor"; const
 export function CommunityProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [posts, setPosts] = useState<CommunityPost[]>(initialPosts); const [isReady, setReady] = useState(false); const [visitorKey, setVisitorKey] = useState("");
+  // The server replaces an optimistic post's temporary ID. Track it so deleting immediately after publishing also removes the server copy.
+  const pendingRemotePostIds = useRef(new Set<string>());
+  const cancelledRemotePostIds = useRef(new Set<string>());
   useEffect(() => { const timer = window.setTimeout(() => { setVisitorKey(getAuthorKey()); void (async () => { if (isRemoteCommunityEnabled) { try { setPosts(await communityRepository.listPosts()); } catch { setPosts(readPosts()); } } else { setPosts(readPosts()); } setReady(true); })(); }, 0); return () => window.clearTimeout(timer); }, []);
   const persist = useCallback((next: CommunityPost[]) => { setPosts(next); window.localStorage.setItem(storageKey, JSON.stringify(next)); }, []);
   const reloadRemote = useCallback(() => { void communityRepository.listPosts().then(setPosts).catch(() => undefined); }, []);
@@ -29,12 +32,26 @@ export function CommunityProvider({ children }: { children: React.ReactNode }) {
     const post: CommunityPost = { ...draft, id: globalThis.crypto?.randomUUID?.() ?? `community-${Date.now()}`, authorKey, author, createdAt: new Date().toISOString(), likes: [], comments: [] };
     // 원격 저장소를 사용하는 경우에도 먼저 화면을 즉시 갱신한다.
     persist([post, ...posts]);
-    if (isRemoteCommunityEnabled) void communityRepository.createPost(draft, author, authorKey).then(reloadRemote).catch(() => undefined);
+    if (isRemoteCommunityEnabled) {
+      pendingRemotePostIds.current.add(post.id);
+      void communityRepository.createPost(draft, author, authorKey).then((savedPost) => {
+        pendingRemotePostIds.current.delete(post.id);
+        if (cancelledRemotePostIds.current.delete(post.id)) {
+          void communityRepository.deletePost(savedPost.id).then(reloadRemote).catch(() => undefined);
+          return;
+        }
+        setPosts((current) => {
+          const next = current.map((item) => item.id === post.id ? savedPost : item);
+          window.localStorage.setItem(storageKey, JSON.stringify(next));
+          return next;
+        });
+      }).catch(() => { pendingRemotePostIds.current.delete(post.id); });
+    }
   }, [persist, posts, reloadRemote]);
   const toggleLike = useCallback((postId: string) => { const authorKey = visitorKey || getAuthorKey(); const post = posts.find((item) => item.id === postId); if (!post) return; persist(posts.map((item) => item.id !== postId ? item : { ...item, likes: item.likes.includes(authorKey) ? item.likes.filter((id) => id !== authorKey) : [...item.likes, authorKey] })); if (isRemoteCommunityEnabled) void communityRepository.toggleLike(postId, authorKey, post.likes.includes(authorKey)).then(reloadRemote).catch(() => undefined); }, [persist, posts, reloadRemote, visitorKey]);
   const addComment = useCallback((postId: string, author: string, content: string) => { const cleaned = content.trim(); if (!cleaned) return; const authorKey = visitorKey || getAuthorKey(); persist(posts.map((post) => post.id !== postId ? post : { ...post, comments: [...post.comments, { id: globalThis.crypto?.randomUUID?.() ?? `comment-${Date.now()}`, authorKey, author, content: cleaned, createdAt: new Date().toISOString() }] })); if (isRemoteCommunityEnabled) void communityRepository.addComment(postId, author, authorKey, cleaned).then(reloadRemote).catch(() => undefined); }, [persist, posts, reloadRemote, visitorKey]);
-  const deletePost = useCallback((postId: string) => { const authorKey = visitorKey || getAuthorKey(); const post = posts.find((item) => item.id === postId); const isMine = post?.authorKey === authorKey || Boolean(user && post?.author === user.nickname); if (!post || !isMine) return; persist(posts.filter((item) => item.id !== postId)); if (isRemoteCommunityEnabled) void communityRepository.deletePost(postId, authorKey).then(reloadRemote).catch(() => undefined); }, [persist, posts, reloadRemote, user, visitorKey]);
-  const deleteComment = useCallback((postId: string, commentId: string) => { const authorKey = visitorKey || getAuthorKey(); const post = posts.find((item) => item.id === postId); const comment = post?.comments.find((item) => item.id === commentId); const isMine = comment?.authorKey === authorKey || Boolean(user && comment?.author === user.nickname); if (!post || !comment || !isMine) return; persist(posts.map((item) => item.id !== postId ? item : { ...item, comments: item.comments.filter((found) => found.id !== commentId) })); if (isRemoteCommunityEnabled) void communityRepository.deleteComment(commentId, authorKey).then(reloadRemote).catch(() => undefined); }, [persist, posts, reloadRemote, user, visitorKey]);
+  const deletePost = useCallback((postId: string) => { const authorKey = visitorKey || getAuthorKey(); const post = posts.find((item) => item.id === postId); const isMine = post?.authorKey === authorKey || Boolean(user && post?.author === user.nickname); if (!post || !isMine) return; persist(posts.filter((item) => item.id !== postId)); if (isRemoteCommunityEnabled) { if (pendingRemotePostIds.current.has(postId)) cancelledRemotePostIds.current.add(postId); else void communityRepository.deletePost(postId).then(reloadRemote).catch(() => undefined); } }, [persist, posts, reloadRemote, user, visitorKey]);
+  const deleteComment = useCallback((postId: string, commentId: string) => { const authorKey = visitorKey || getAuthorKey(); const post = posts.find((item) => item.id === postId); const comment = post?.comments.find((item) => item.id === commentId); const isMine = comment?.authorKey === authorKey || Boolean(user && comment?.author === user.nickname); if (!post || !comment || !isMine) return; persist(posts.map((item) => item.id !== postId ? item : { ...item, comments: item.comments.filter((found) => found.id !== commentId) })); if (isRemoteCommunityEnabled) void communityRepository.deleteComment(commentId).then(reloadRemote).catch(() => undefined); }, [persist, posts, reloadRemote, user, visitorKey]);
   const value = useMemo(() => ({ posts, isReady, visitorKey, createPost, toggleLike, addComment, deletePost, deleteComment }), [addComment, createPost, deleteComment, deletePost, isReady, posts, toggleLike, visitorKey]);
   return <CommunityContext.Provider value={value}>{children}</CommunityContext.Provider>;
 }

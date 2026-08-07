@@ -32,8 +32,9 @@ export const communityRepository = {
     ]);
     return posts.map((post) => toPost(post, comments, likes));
   },
-  async createPost(draft: RemotePostDraft, author: string, authorKey: string): Promise<void> {
-    await request("community_posts", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ author_key: authorKey, author_name: author, title: draft.title, content: draft.content, discovery_id: draft.discoveryId ?? null, species_name: draft.speciesName ?? null, species_image_label: draft.speciesImageLabel ?? null, species_image_tone: draft.speciesImageTone ?? null, location_name: draft.locationName ?? null, category: draft.category ?? "discovery", visibility: "public" }) });
+  async createPost(draft: RemotePostDraft, author: string, authorKey: string): Promise<CommunityPost> {
+    const rows = await request<PostRow[]>("community_posts", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ author_key: authorKey, author_name: author, title: draft.title, content: draft.content, discovery_id: draft.discoveryId ?? null, species_name: draft.speciesName ?? null, species_image_label: draft.speciesImageLabel ?? null, species_image_tone: draft.speciesImageTone ?? null, location_name: draft.locationName ?? null, category: draft.category ?? "discovery", visibility: "public" }) });
+    return toPost(rows[0], [], []);
   },
   async toggleLike(postId: string, authorKey: string, liked: boolean): Promise<void> {
     if (liked) { await request(`community_likes?post_id=eq.${encodeURIComponent(postId)}&author_key=eq.${encodeURIComponent(authorKey)}`, { method: "DELETE" }); return; }
@@ -42,10 +43,10 @@ export const communityRepository = {
   async addComment(postId: string, author: string, authorKey: string, content: string): Promise<void> {
     await request("community_comments", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ post_id: postId, author_name: author, author_key: authorKey, content }) });
   },
-  async deletePost(postId: string, authorKey: string): Promise<void> {
-    await request(`community_posts?id=eq.${encodeURIComponent(postId)}&author_key=eq.${encodeURIComponent(authorKey)}`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
+  async deletePost(postId: string): Promise<void> {
+    await request(`community_posts?id=eq.${encodeURIComponent(postId)}`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
   },
-  async deleteComment(commentId: string, authorKey: string): Promise<void> {
-    await request(`community_comments?id=eq.${encodeURIComponent(commentId)}&author_key=eq.${encodeURIComponent(authorKey)}`, { method: "DELETE", headers: { Prefer: "return-minimal" } });
+  async deleteComment(commentId: string): Promise<void> {
+    await request(`community_comments?id=eq.${encodeURIComponent(commentId)}`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
   },
 };
