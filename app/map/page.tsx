@@ -42,6 +42,7 @@ export default function MapPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const requestedDiscoveryId = searchParams.get("discoveryId");
+  const requestedPlaceId = searchParams.get("place");
   const mapFailed = searchParams.get("mapError") === "1";
   const handledQuery = useRef<string | null>(null);
   const [filters, setFilters] = useState<MapFilters>(defaultFilters);
@@ -102,6 +103,18 @@ export default function MapPage() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [allRecords, groups, isReady, requestedDiscoveryId]);
+
+  useEffect(() => {
+    if (!requestedPlaceId || handledQuery.current === `place:${requestedPlaceId}`) return;
+    const place = busanPlaces.find((item) => item.id === requestedPlaceId);
+    handledQuery.current = `place:${requestedPlaceId}`;
+    if (!place) { setNotice("요청한 탐험지를 찾을 수 없어 부산 전체 지도를 표시합니다."); return; }
+    setCenter({ latitude: place.latitude, longitude: place.longitude });
+    setZoom(2.15);
+    setViewMode("map");
+    setSelectedGroupId(null);
+    setSelectedRecordId(null);
+  }, [requestedPlaceId]);
 
   const statistics = useMemo<MapStatistics>(() => ({ recordCount: filteredRecords.length, speciesCount: new Set(filteredRecords.map((record) => record.speciesId)).size, locationCount: new Set(filteredRecords.map((record) => record.locationName)).size, rareCount: filteredRecords.filter((record) => record.rarity === "희귀" || record.rarity === "매우 희귀").length, topSpecies: countMost(filteredRecords.map((record) => record.speciesName)), topLocation: countMost(filteredRecords.map((record) => record.locationName)) }), [filteredRecords]);
   const activeFilterCount = [filters.speciesId !== "all", filters.category !== "all", filters.rarity !== "all", filters.datePreset !== "all", filters.location !== "all", filters.safety !== "all", filters.owner !== "public", Boolean(filters.search)].filter(Boolean).length;
