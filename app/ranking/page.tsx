@@ -9,7 +9,7 @@ import { getLeaderboard } from "../services/achievements";
 export default function RankingPage() {
   const { user } = useAuth();
   const { records } = useDiscoveries();
-  const leaderboard = getLeaderboard(records, user?.nickname ?? "나");
+  const leaderboard = getLeaderboard(records, user?.nickname ?? "나", user);
   return <ProtectedPage><AppShell><section className="ranking-page">
     <header className="ranking-hero"><p className="eyebrow">BUSAN SEA LEADERBOARD</p><h1>탐험가 랭킹</h1><p>발견 기록 점수와 도감에 등록한 생물 수를 기준으로 이번 달의 탐험가를 소개합니다.</p></header>
     <section className="ranking-podium" aria-label="상위 탐험가">{leaderboard.slice(0, 3).map((entry) => <article className={`place-${entry.rank}`} key={entry.name}><span>{entry.rank}위</span><div className="ranking-medal" aria-hidden="true">{entry.rank === 1 ? "◉" : entry.rank === 2 ? "○" : "◇"}</div><b>{entry.name}{entry.isCurrentUser ? " (나)" : ""}</b><small>{entry.points.toLocaleString()}P · {entry.speciesCount}종</small></article>)}</section>

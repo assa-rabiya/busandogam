@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { calculateDiscoveryScore } from "../services/scoring";
 import type { CollectionEntry, Discovery, DiscoveryDraft } from "../types/discovery";
+import { useAuth } from "./auth-provider";
 
 const storageKey = "busan-sea-guide-discoveries-v1";
 const schemaVersion = 1;
@@ -19,23 +20,33 @@ interface DiscoveryContextValue {
 }
 const DiscoveryContext = createContext<DiscoveryContextValue | null>(null);
 
-function safelyReadRecords(): Discovery[] {
+function safelyReadRecords(key: string, allowLegacy = false): Discovery[] {
   try {
-    const raw = window.localStorage.getItem(storageKey);
+    const raw = window.localStorage.getItem(key) ?? (allowLegacy ? window.localStorage.getItem(storageKey) : null);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as Partial<StoredData>;
     return parsed.version === schemaVersion && Array.isArray(parsed.records) ? parsed.records.filter((record): record is Discovery => Boolean(record?.id && record.speciesId && record.locationName)) : [];
-  } catch { window.localStorage.removeItem(storageKey); return []; }
+  } catch { window.localStorage.removeItem(key); return []; }
 }
 
 export function DiscoveryProvider({ children }: { children: React.ReactNode }) {
+  const { user, isReady: isAuthReady } = useAuth();
   const [records, setRecords] = useState<Discovery[]>([]);
   const [isReady, setReady] = useState(false);
   const [isSaving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const saveLock = useRef(false);
-  useEffect(() => { const timer = window.setTimeout(() => { setRecords(safelyReadRecords()); setReady(true); }, 0); return () => window.clearTimeout(timer); }, []);
-  const persist = useCallback((next: Discovery[]) => window.localStorage.setItem(storageKey, JSON.stringify({ version: schemaVersion, records: next } satisfies StoredData)), []);
+  const accountId = user?.id ?? "anonymous";
+  const accountStorageKey = `${storageKey}-${accountId}`;
+  useEffect(() => {
+    if (!isAuthReady) return;
+    const timer = window.setTimeout(() => {
+      setRecords(safelyReadRecords(accountStorageKey, accountId === "demo-explorer-minsu"));
+      setReady(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [accountId, accountStorageKey, isAuthReady]);
+  const persist = useCallback((next: Discovery[]) => window.localStorage.setItem(accountStorageKey, JSON.stringify({ version: schemaVersion, records: next } satisfies StoredData)), [accountStorageKey]);
   const createDiscovery = useCallback(async (draft: DiscoveryDraft) => {
     if (saveLock.current) throw new Error("저장 요청을 처리하고 있어요.");
     saveLock.current = true; setSaving(true); setError(null);

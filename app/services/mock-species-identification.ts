@@ -28,6 +28,11 @@ function chooseDemoId(image: SelectedImage): DemoImageId | null {
   return null;
 }
 
+function chooseFallbackId(image: SelectedImage): DemoImageId {
+  const seed = [...image.fileName].reduce((total, character) => total + character.charCodeAt(0), image.fileSize ?? 0);
+  return (["purple-urchin", "sea-anemone", "rockfish"] as DemoImageId[])[Math.abs(seed) % 3];
+}
+
 export const mockSpeciesIdentificationService: SpeciesIdentificationService = {
   async identify(image, onProgress) {
     for (const step of steps) {
@@ -37,7 +42,7 @@ export const mockSpeciesIdentificationService: SpeciesIdentificationService = {
     if (image.kind === "upload" && (image.fileSize ?? 0) < 20 * 1024) {
       throw new UncertainIdentificationError("사진의 해상도나 정보가 부족해 생물을 확인하기 어렵습니다. 생물 전체가 선명하게 보이도록 다시 촬영해 주세요.");
     }
-    const matchedId = chooseDemoId(image);
+    const matchedId = chooseDemoId(image) ?? (image.kind === "upload" ? chooseFallbackId(image) : null);
     if (!matchedId) {
       throw new UncertainIdentificationError("도감에 있는 생물과 충분히 일치하지 않습니다. 다른 각도에서 더 가까이 촬영한 사진을 다시 업로드해 주세요.");
     }

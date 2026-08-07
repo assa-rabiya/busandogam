@@ -3,13 +3,16 @@ import { AppLink as Link } from "./components/app-link";
 import { AppShell } from "./components/app-shell";
 import { ImageTile } from "./components/image-tile";
 import { locations, popularSpecies, recentDiscoveries } from "./data/mock-data";
-import { user } from "./data/mock-data";
+import { user as demoUser } from "./data/mock-data";
 import { useDiscoveries } from "./components/discovery-provider";
 import { DiscoveryImage } from "./components/discovery-image";
 import { withBasePath } from "./base-path";
+import { useAuth } from "./components/auth-provider";
 
 export default function Home() {
   const { records, getRecentDiscoveries } = useDiscoveries();
+  const { user: activeUser } = useAuth();
+  const user = activeUser ?? demoUser;
   const recentRecords = getRecentDiscoveries(6);
   const addedSpecies = new Set(records.map((record) => record.speciesId)).size;
   const addedLocations = new Set(records.map((record) => record.locationName)).size;

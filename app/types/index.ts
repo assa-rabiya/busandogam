@@ -2,6 +2,8 @@ export type NavigationId = "home" | "map" | "camera" | "community" | "collection
 export type Rarity = "흔함" | "보통" | "희귀" | "매우 희귀";
 
 export interface AppUser {
+  id?: string;
+  accountType?: "demo" | "guest";
   nickname: string; level: number; points: number; discoveredSpeciesCount: number;
   discoveryCount: number; visitedLocationCount: number; postCount: number;
   experience: number; nextLevelExperience: number; representativeBadge: string;
