@@ -44,6 +44,8 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
+    // GitHub Pages project sites are served below `/busandogam/`, not the
+    // domain root. This keeps compiled CSS and JavaScript asset URLs valid.
     base: process.env.GITHUB_PAGES === "true" ? "/busandogam/" : "/",
     server: isCodexSeatbeltSandbox
       ? { watch: { useFsEvents: false, usePolling: true } }

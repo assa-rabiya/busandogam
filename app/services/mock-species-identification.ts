@@ -1,4 +1,4 @@
-import type { SpeciesIdentificationService } from "./species-identification";
+import { UncertainIdentificationError, type SpeciesIdentificationService } from "./species-identification";
 import type { AnalysisStep, DemoImageId, SelectedImage, SpeciesAnalysisResult } from "../types/ai-analysis";
 
 const candidates = {
@@ -19,12 +19,13 @@ const steps: Array<{ id: AnalysisStep; progress: number }> = [
 
 const wait = (duration: number) => new Promise((resolve) => setTimeout(resolve, duration));
 
-function chooseDemoId(image: SelectedImage): DemoImageId {
+function chooseDemoId(image: SelectedImage): DemoImageId | null {
   if (image.demoId) return image.demoId;
   const normalized = image.fileName.toLowerCase();
   if (normalized.includes("anemone") || normalized.includes("말미잘")) return "sea-anemone";
   if (normalized.includes("rockfish") || normalized.includes("쏨뱅이")) return "rockfish";
-  return "purple-urchin";
+  if (normalized.includes("urchin") || normalized.includes("성게")) return "purple-urchin";
+  return null;
 }
 
 export const mockSpeciesIdentificationService: SpeciesIdentificationService = {
@@ -33,6 +34,13 @@ export const mockSpeciesIdentificationService: SpeciesIdentificationService = {
       await wait(450);
       onProgress?.(step.id, step.progress);
     }
-    return structuredClone(results[chooseDemoId(image)]);
+    if (image.kind === "upload" && (image.fileSize ?? 0) < 20 * 1024) {
+      throw new UncertainIdentificationError("사진의 해상도나 정보가 부족해 생물을 확인하기 어렵습니다. 생물 전체가 선명하게 보이도록 다시 촬영해 주세요.");
+    }
+    const matchedId = chooseDemoId(image);
+    if (!matchedId) {
+      throw new UncertainIdentificationError("도감에 있는 생물과 충분히 일치하지 않습니다. 다른 각도에서 더 가까이 촬영한 사진을 다시 업로드해 주세요.");
+    }
+    return structuredClone(results[matchedId]);
   },
 };

@@ -1,2 +1,25 @@
-import { PlaceholderPage } from "../components/app-shell";
-export default function CommunityPage() { return <PlaceholderPage title="커뮤니티" description="관찰 기록 공유와 댓글 기능은 6단계에서 연결됩니다." />; }
+"use client";
+
+import { useMemo, useState } from "react";
+import { AppShell } from "../components/app-shell";
+import { ProtectedPage } from "../components/protected-page";
+import { DiscoveryImage } from "../components/discovery-image";
+import { useAuth } from "../components/auth-provider";
+import { useCommunity } from "../components/community-provider";
+import { useDiscoveries } from "../components/discovery-provider";
+import { getLeaderboard } from "../services/achievements";
+
+export default function CommunityPage() {
+  const { user } = useAuth(); const { records } = useDiscoveries(); const { posts, isReady, visitorKey, createPost, toggleLike, addComment } = useCommunity();
+  const [writeOpen, setWriteOpen] = useState(false); const [title, setTitle] = useState(""); const [content, setContent] = useState(""); const [discoveryId, setDiscoveryId] = useState(""); const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const publicRecords = useMemo(() => records.filter((record) => record.visibility === "public"), [records]); const leaderboard = useMemo(() => getLeaderboard(records, user?.nickname ?? "나"), [records, user?.nickname]);
+  const submitPost = (event: React.FormEvent) => { event.preventDefault(); if (!user || !title.trim() || !content.trim()) return; const linked = publicRecords.find((record) => record.id === discoveryId); createPost({ title: title.trim(), content: content.trim(), discoveryId: linked?.id, speciesName: linked?.speciesName, speciesImageLabel: linked?.imageLabel, speciesImageTone: linked?.imageTone, locationName: linked?.locationName }, user.nickname); setTitle(""); setContent(""); setDiscoveryId(""); setWriteOpen(false); };
+  const sendComment = (postId: string) => { if (!user) return; addComment(postId, user.nickname, commentDrafts[postId] ?? ""); setCommentDrafts((current) => ({ ...current, [postId]: "" })); };
+  return <ProtectedPage><AppShell><section className="community-page">
+    <header className="community-header"><div><p className="eyebrow">BUSAN SEA COMMUNITY</p><h1>부산 바다 이야기</h1><p>발견한 생물과 관찰 경험을 안전하게 나눠 보세요.</p></div><button className="primary-action" onClick={() => setWriteOpen((open) => !open)}>{writeOpen ? "작성 닫기" : "＋ 발견 공유하기"}</button></header>
+    <section className="community-ranking"><div><p className="eyebrow">THIS MONTH</p><h2>탐험가 랭킹</h2><p>발견 기록 점수와 도감 수를 기준으로 표시됩니다.</p></div><ol>{leaderboard.map((entry) => <li className={entry.isCurrentUser ? "current" : ""} key={entry.name}><b>{entry.rank}</b><strong>{entry.name}{entry.isCurrentUser ? " (나)" : ""}</strong><span>{entry.speciesCount}종 · {entry.points.toLocaleString()}P</span></li>)}</ol></section>
+    <p className="community-device-note">ⓘ 연결 키가 설정되면 모든 사용자의 게시물을 함께 표시합니다. 설정 전에는 이 기기의 발표용 데이터가 표시됩니다.</p>
+    {writeOpen && <form className="community-composer" onSubmit={submitPost}><label>제목<input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={70} placeholder="예: 청사포에서 만난 말미잘" required /></label><label>발견 기록 연결 <select value={discoveryId} onChange={(event) => setDiscoveryId(event.target.value)}><option value="">연결하지 않음</option>{publicRecords.map((record) => <option key={record.id} value={record.id}>{record.speciesName} · {record.locationName}</option>)}</select></label><label>내용<textarea value={content} onChange={(event) => setContent(event.target.value)} maxLength={500} placeholder="관찰한 특징과 안전 수칙을 함께 나눠 주세요." required /></label><div><button className="outline-action" type="button" onClick={() => setWriteOpen(false)}>취소</button><button className="primary-action" type="submit">게시하기</button></div></form>}
+    {!isReady ? <section className="empty-state"><b>⌁</b><h2>커뮤니티를 불러오는 중이에요</h2></section> : <section className="community-feed">{posts.map((post) => { const liked = Boolean(visitorKey && post.likes.includes(visitorKey)); return <article className="community-post" key={post.id}><header><div className="community-avatar">{post.author.slice(0, 1)}</div><div><strong>{post.author}</strong><span>{new Date(post.createdAt).toLocaleString("ko-KR")}</span></div></header>{post.speciesName && <div className="community-discovery"><DiscoveryImage label={post.speciesImageLabel ?? "◌"} tone={post.speciesImageTone ?? "upload"} name={post.speciesName} /><div><span className="eyebrow">DISCOVERY SHARE</span><b>{post.speciesName}</b><small>{post.locationName}</small></div></div>}<h2>{post.title}</h2><p>{post.content}</p><footer><button className={liked ? "liked" : ""} aria-pressed={liked} onClick={() => user && toggleLike(post.id)}>♥ 좋아요 {post.likes.length}</button><span>▢ 댓글 {post.comments.length}</span></footer><section className="community-comments">{post.comments.map((comment) => <div key={comment.id}><b>{comment.author}</b><p>{comment.content}</p><small>{new Date(comment.createdAt).toLocaleString("ko-KR")}</small></div>)}<div className="comment-composer"><input aria-label={`${post.title} 댓글`} value={commentDrafts[post.id] ?? ""} onChange={(event) => setCommentDrafts((current) => ({ ...current, [post.id]: event.target.value }))} placeholder="응원 댓글을 남겨 보세요" maxLength={200} /><button onClick={() => sendComment(post.id)}>등록</button></div></section></article>; })}</section>}
+  </section></AppShell></ProtectedPage>;
+}

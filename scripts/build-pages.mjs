@@ -2,7 +2,7 @@ import {
   existsSync,
   readFileSync,
   readdirSync,
-  renameSync,
+  cpSync,
   statSync,
   writeFileSync,
 } from "node:fs";
@@ -48,7 +48,10 @@ function findNextAssetsDirectory(directory) {
 
 const nextAssetsPath = findNextAssetsDirectory(pagesOutput);
 if (nextAssetsPath && !existsSync(pagesAssetsPath)) {
-  renameSync(nextAssetsPath, pagesAssetsPath);
+  // Keep the original `_next` files for clients that still have an older
+  // GitHub Pages document cached, while publishing a neutral `assets` copy
+  // for fresh static pages.
+  cpSync(nextAssetsPath, pagesAssetsPath, { recursive: true });
 }
 
 const rewriteExtensions = new Set([".html", ".js", ".json", ".css"]);

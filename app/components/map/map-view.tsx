@@ -1,48 +1,87 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import { busanPlaces } from "../../data/discovery-data";
 import { mockMapAdapter } from "../../services/mock-map-adapter";
 import type { Coordinates, MapCenter, MapMarkerGroup } from "../../types/map";
-import { MapMarker } from "./map-marker";
 
 export type LocationStatus = "idle" | "loading" | "success" | "denied" | "unsupported" | "outside";
 
-export function MapView({ groups, center, zoom, selectedGroupId, currentLocation, locationStatus, onSelectGroup, onZoom, onReset, onRequestLocation, onMovePlace, failed }: {
-  groups: MapMarkerGroup[];
-  center: MapCenter;
-  zoom: number;
-  selectedGroupId: string | null;
-  currentLocation: Coordinates | null;
-  locationStatus: LocationStatus;
-  onSelectGroup: (group: MapMarkerGroup) => void;
-  onZoom: (next: number) => void;
-  onReset: () => void;
-  onRequestLocation: () => void;
-  onMovePlace: (placeId: string) => void;
-  failed: boolean;
+type LeafletMap = {
+  setView: (coords: [number, number], zoom: number, options?: { animate?: boolean }) => LeafletMap;
+  getCenter: () => { lat: number; lng: number };
+  getZoom: () => number;
+  on: (event: string, listener: () => void) => void;
+  remove: () => void;
+};
+type LeafletMarker = { addTo: (map: LeafletMap) => LeafletMarker; on: (event: string, listener: () => void) => LeafletMarker; setZIndexOffset: (value: number) => void; remove: () => void; };
+type LeafletApi = { map: (element: HTMLElement, options: object) => LeafletMap; tileLayer: (url: string, options: object) => { addTo: (map: LeafletMap) => void }; marker: (coords: [number, number], options: object) => LeafletMarker; divIcon: (options: object) => unknown; };
+
+declare global { interface Window { L?: LeafletApi; } }
+
+const leafletScript = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+const leafletStylesheet = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+const categoryIcons: Record<string, string> = { "어류": "◇", "연체동물": "◉", "갑각류": "♢", "극피동물": "✦", "자포동물": "✺", "해조류": "≋", "기타": "●" };
+const toLeafletZoom = (zoom: number) => Math.max(11, Math.min(15, Math.round(12 + (zoom - 1) * 2)));
+const toAppZoom = (zoom: number) => Math.max(.75, Math.min(2.4, 1 + (zoom - 12) / 2));
+
+function loadLeaflet() {
+  if (window.L) return Promise.resolve(window.L);
+  return new Promise<LeafletApi>((resolve, reject) => {
+    if (!document.querySelector(`link[href="${leafletStylesheet}"]`)) {
+      const style = document.createElement("link"); style.rel = "stylesheet"; style.href = leafletStylesheet;
+      (document.head as unknown as { appendChild: (node: unknown) => unknown }).appendChild(style);
+    }
+    const existing = document.querySelector<HTMLScriptElement>(`script[src="${leafletScript}"]`);
+    if (existing) { existing.addEventListener("load", () => window.L ? resolve(window.L) : reject(new Error("Leaflet failed")), { once: true }); existing.addEventListener("error", () => reject(new Error("Leaflet failed")), { once: true }); return; }
+    const script = document.createElement("script"); script.src = leafletScript; script.async = true;
+    script.onload = () => window.L ? resolve(window.L) : reject(new Error("Leaflet failed")); script.onerror = () => reject(new Error("Leaflet failed"));
+    (document.head as unknown as { appendChild: (node: unknown) => unknown }).appendChild(script);
+  });
+}
+
+export function MapView({ groups, center, zoom, selectedGroupId, currentLocation, locationStatus, onSelectGroup, onReset, onRequestLocation, onMovePlace, onViewportChange, failed }: {
+  groups: MapMarkerGroup[]; center: MapCenter; zoom: number; selectedGroupId: string | null; currentLocation: Coordinates | null; locationStatus: LocationStatus;
+  onSelectGroup: (group: MapMarkerGroup) => void; onReset: () => void; onRequestLocation: () => void; onMovePlace: (placeId: string) => void; onViewportChange: (nextCenter: MapCenter, nextZoom: number) => void; failed: boolean;
 }) {
-  if (failed) return <section className="map-error" role="alert"><b>!</b><h2>지도를 초기화하지 못했어요</h2><p>발견 목록은 계속 사용할 수 있습니다. 잠시 후 다시 시도해 주세요.</p><button className="outline-action" onClick={onReset}>지도 다시 불러오기</button></section>;
-  const currentPoint = currentLocation && mockMapAdapter.isInsideBusan(currentLocation.latitude, currentLocation.longitude)
-    ? mockMapAdapter.project(currentLocation.latitude, currentLocation.longitude, center, zoom)
-    : null;
-  return <section className="mock-map" aria-label="부산 발견 지도">
-    <div className="map-sea-grid" aria-hidden="true" />
-    <div className="map-land land-west" aria-hidden="true" />
-    <div className="map-land land-east" aria-hidden="true" />
-    <div className="map-title" aria-hidden="true"><b>BUSAN</b><span>부산 연안 발견 지도</span></div>
-    {groups.map((group) => <MapMarker key={group.id} group={group} point={mockMapAdapter.project(group.latitude, group.longitude, center, zoom)} selected={selectedGroupId === group.id} onSelect={() => onSelectGroup(group)} />)}
-    {currentPoint && <div className="current-location-marker" style={{ left: `${currentPoint.x}%`, top: `${currentPoint.y}%` }}><span />내 위치</div>}
+  const container = useRef<HTMLDivElement>(null); const map = useRef<LeafletMap | null>(null); const markers = useRef<LeafletMarker[]>([]); const [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (!container.current || failed) return;
+    void loadLeaflet().then((L) => {
+      if (!active || !container.current) return;
+      const nextMap = L.map(container.current, { zoomControl: true, attributionControl: true }).setView([center.latitude, center.longitude], toLeafletZoom(zoom));
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap contributors" }).addTo(nextMap);
+      nextMap.on("moveend", () => { const next = nextMap.getCenter(); onViewportChange({ latitude: next.lat, longitude: next.lng }, toAppZoom(nextMap.getZoom())); });
+      map.current = nextMap;
+    }).catch(() => setLoadError(true));
+    return () => { active = false; map.current?.remove(); map.current = null; };
+  // The map instance intentionally starts once; later props update it below.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [failed]);
+
+  useEffect(() => { const nextMap = map.current; if (!nextMap) return; const current = nextMap.getCenter(); const nextZoom = toLeafletZoom(zoom); if (Math.abs(current.lat - center.latitude) > .0001 || Math.abs(current.lng - center.longitude) > .0001 || nextMap.getZoom() !== nextZoom) nextMap.setView([center.latitude, center.longitude], nextZoom, { animate: true }); }, [center.latitude, center.longitude, zoom]);
+  useEffect(() => {
+    const L = window.L; const nextMap = map.current; if (!L || !nextMap) return;
+    markers.current.forEach((marker) => marker.remove()); markers.current = [];
+    groups.forEach((group) => {
+      const representative = group.records[0]; const icon = categoryIcons[representative.species?.category ?? "기타"] ?? "●";
+      const marker = L.marker([group.latitude, group.longitude], { icon: L.divIcon({ className: "", html: `<span class="leaflet-discovery-marker ${selectedGroupId === group.id ? "selected" : ""}">${icon}${group.records.length > 1 ? `<b>${group.records.length}</b>` : ""}</span>` }) }).addTo(nextMap);
+      marker.setZIndexOffset(selectedGroupId === group.id ? 1000 : 0); marker.on("click", () => onSelectGroup(group)); markers.current.push(marker);
+    });
+    if (currentLocation && mockMapAdapter.isInsideBusan(currentLocation.latitude, currentLocation.longitude)) {
+      const marker = L.marker([currentLocation.latitude, currentLocation.longitude], { icon: L.divIcon({ className: "", html: '<span class="leaflet-current-marker">●</span>' }) }).addTo(nextMap); markers.current.push(marker);
+    }
+  }, [currentLocation, groups, onSelectGroup, selectedGroupId]);
+
+  if (failed || loadError) return <section className="map-error" role="alert"><b>!</b><h2>실제 지도를 불러오지 못했어요</h2><p>인터넷 연결을 확인해 주세요. 발견 목록은 계속 사용할 수 있습니다.</p><button className="outline-action" onClick={onReset}>부산 전체 보기</button></section>;
+  return <section className="osm-map" aria-label="OpenStreetMap 기반 부산 발견 지도">
+    <div ref={container} className="osm-map-canvas" />
     {groups.length === 0 && <div className="map-empty-overlay"><b>⌕</b><span>표시할 마커가 없습니다</span></div>}
-    <div className="map-zoom-controls" aria-label="지도 확대 축소">
-      <button aria-label="지도 확대" disabled={zoom >= 2.4} onClick={() => onZoom(Math.min(2.4, zoom + .35))}>＋</button>
-      <span>{Math.round(zoom * 100)}%</span>
-      <button aria-label="지도 축소" disabled={zoom <= .75} onClick={() => onZoom(Math.max(.75, zoom - .35))}>−</button>
-    </div>
     <div className="map-floating-actions">
-      <select aria-label="지역으로 지도 이동" defaultValue="" onChange={(event) => { if (event.target.value) onMovePlace(event.target.value); }}>
-        <option value="" disabled>지역으로 이동</option>
-        {busanPlaces.map((place) => <option key={place.id} value={place.id}>{place.name}</option>)}
-      </select>
-      <button onClick={onReset}>부산 전체</button>
-      <button disabled={locationStatus === "loading"} onClick={onRequestLocation}>{locationStatus === "loading" ? "위치 확인 중…" : "⌾ 내 위치"}</button>
+      <select aria-label="지역으로 지도 이동" defaultValue="" onChange={(event) => { if (event.target.value) onMovePlace(event.target.value); }}><option value="" disabled>지역으로 이동</option>{busanPlaces.map((place) => <option key={place.id} value={place.id}>{place.name}</option>)}</select>
+      <button onClick={onReset}>부산 전체</button><button disabled={locationStatus === "loading"} onClick={onRequestLocation}>{locationStatus === "loading" ? "위치 확인 중…" : "⌾ 내 위치"}</button>
     </div>
     {locationStatus === "denied" && <p className="map-location-notice error">위치 권한이 거부되었습니다. 지역을 직접 선택해 주세요.</p>}
     {locationStatus === "unsupported" && <p className="map-location-notice error">이 브라우저에서는 위치 기능을 사용할 수 없습니다.</p>}

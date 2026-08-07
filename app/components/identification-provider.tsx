@@ -2,10 +2,11 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { mockSpeciesIdentificationService } from "../services/mock-species-identification";
+import { UncertainIdentificationError } from "../services/species-identification";
 import type { AnalysisStep, DemoImageId, IdentificationSession, SelectedImage } from "../types/ai-analysis";
 
 const storageKey = "busan-sea-guide-identification";
-const initialState: IdentificationSession = { selectedImage: null, progress: 0, currentStep: null, completedSteps: [], isAnalyzing: false, result: null, error: null };
+const initialState: IdentificationSession = { selectedImage: null, progress: 0, currentStep: null, completedSteps: [], isAnalyzing: false, result: null, error: null, requiresRetake: false };
 
 interface IdentificationContextValue extends IdentificationSession {
   isReady: boolean;
@@ -57,7 +58,7 @@ export function IdentificationProvider({ children }: { children: React.ReactNode
     if (file.size > 10 * 1024 * 1024) { setSession((current) => ({ ...current, error: "이미지는 10MB 이하로 선택해 주세요." })); return; }
     setSession((current) => {
       if (current.selectedImage?.kind === "upload" && current.selectedImage.previewUrl) URL.revokeObjectURL(current.selectedImage.previewUrl);
-      return { ...initialState, selectedImage: { kind: "upload", id: `upload-${file.name}-${file.size}`, fileName: file.name, previewUrl: URL.createObjectURL(file), imageLabel: "◉", imageTone: "upload" } };
+      return { ...initialState, selectedImage: { kind: "upload", id: `upload-${file.name}-${file.size}`, fileName: file.name, previewUrl: URL.createObjectURL(file), imageLabel: "◉", imageTone: "upload", fileSize: file.size } };
     });
     window.localStorage.removeItem(storageKey);
   }, []);
@@ -77,9 +78,10 @@ export function IdentificationProvider({ children }: { children: React.ReactNode
       });
       analysisLock.current = false;
       return true;
-    } catch {
+    } catch (caught) {
       analysisLock.current = false;
-      setSession((current) => ({ ...current, isAnalyzing: false, error: "분석 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요." }));
+      const uncertain = caught instanceof UncertainIdentificationError;
+      setSession((current) => ({ ...current, isAnalyzing: false, result: null, requiresRetake: uncertain, error: uncertain ? caught.message : "분석 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요." }));
       return false;
     }
   }, [persistDemoSession, session.isAnalyzing, session.selectedImage]);

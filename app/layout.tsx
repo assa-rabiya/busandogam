@@ -3,6 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "./components/auth-provider";
 import { IdentificationProvider } from "./components/identification-provider";
 import { DiscoveryProvider } from "./components/discovery-provider";
+import { CommunityProvider } from "./components/community-provider";
 
 export const metadata: Metadata = {
   title: "부산바다도감 | 부산의 바다 생물 관찰 기록",
@@ -10,5 +11,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="ko"><body><AuthProvider><DiscoveryProvider><IdentificationProvider>{children}</IdentificationProvider></DiscoveryProvider></AuthProvider></body></html>;
+  return <html lang="ko"><body><AuthProvider><DiscoveryProvider><CommunityProvider><IdentificationProvider>{children}</IdentificationProvider></CommunityProvider></DiscoveryProvider></AuthProvider></body></html>;
 }

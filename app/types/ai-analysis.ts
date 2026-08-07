@@ -12,6 +12,7 @@ export interface SelectedImage {
   demoId?: DemoImageId;
   imageLabel: string;
   imageTone: string;
+  fileSize?: number;
 }
 
 export interface SpeciesCandidate {
@@ -45,4 +46,5 @@ export interface IdentificationSession {
   isAnalyzing: boolean;
   result: SpeciesAnalysisResult | null;
   error: string | null;
+  requiresRetake: boolean;
 }
