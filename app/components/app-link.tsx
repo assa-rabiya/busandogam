@@ -6,6 +6,10 @@ type AppLinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & {
   children: ReactNode;
 };
 
-export function AppLink({ href, children, ...props }: AppLinkProps) {
-  return <a href={withAppRouteBasePath(href)} {...props}>{children}</a>;
+export function AppLink({ href, children, onClick, ...props }: AppLinkProps) {
+  const speciesId = href.startsWith("/species?") ? new URLSearchParams(href.slice(href.indexOf("?") + 1)).get("id") : null;
+  return <a href={withAppRouteBasePath(href)} {...props} onClick={(event) => {
+    if (speciesId && typeof window !== "undefined") window.sessionStorage.setItem("busan-sea-guide-selected-species", speciesId);
+    onClick?.(event);
+  }}>{children}</a>;
 }

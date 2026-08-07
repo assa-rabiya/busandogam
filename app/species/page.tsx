@@ -16,7 +16,7 @@ export default function SpeciesDetailPage() {
   const [browserQuery, setBrowserQuery] = useState<{ checked: boolean; speciesId: string | null }>({ checked: false, speciesId: null });
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setBrowserQuery({ checked: true, speciesId: new URLSearchParams(window.location.search).get("id") });
+      setBrowserQuery({ checked: true, speciesId: new URLSearchParams(window.location.search).get("id") ?? window.sessionStorage.getItem("busan-sea-guide-selected-species") });
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
