@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { mockSpeciesIdentificationService } from "../services/mock-species-identification";
 import { UncertainIdentificationError } from "../services/species-identification";
-import type { AnalysisStep, DemoImageId, IdentificationSession, SelectedImage } from "../types/ai-analysis";
+import type { AnalysisStep, DemoImageId, IdentificationSession, SelectedImage, SpeciesAnalysisResult } from "../types/ai-analysis";
 
 const storageKey = "busan-sea-guide-identification";
 const initialState: IdentificationSession = { selectedImage: null, progress: 0, currentStep: null, completedSteps: [], isAnalyzing: false, result: null, error: null, requiresRetake: false };
@@ -65,11 +65,15 @@ export function IdentificationProvider({ children }: { children: React.ReactNode
 
   const analyze = useCallback(async () => {
     if (!session.selectedImage || session.isAnalyzing || analysisLock.current) return false;
+    const image = session.selectedImage;
     analysisLock.current = true;
     setSession((current) => ({ ...current, isAnalyzing: true, progress: 4, currentStep: "quality", completedSteps: [], result: null, error: null }));
     try {
-      const result = await mockSpeciesIdentificationService.identify(session.selectedImage, (step, progress) => {
-        setSession((current) => ({ ...current, currentStep: step, progress, completedSteps: stepsBefore(step) }));
+      const result = await new Promise<SpeciesAnalysisResult>((resolve, reject) => {
+        const timeout = window.setTimeout(() => reject(new Error("analysis-timeout")), 7_000);
+        void mockSpeciesIdentificationService.identify(image, (step, progress) => {
+          setSession((current) => ({ ...current, currentStep: step, progress, completedSteps: stepsBefore(step) }));
+        }).then((value) => { window.clearTimeout(timeout); resolve(value); }, (cause: unknown) => { window.clearTimeout(timeout); reject(cause); });
       });
       setSession((current) => {
         const next = { ...current, isAnalyzing: false, result, progress: 100, currentStep: "safety" as AnalysisStep, completedSteps: ["quality", "shape", "similarity", "safety"] as AnalysisStep[] };
@@ -80,7 +84,7 @@ export function IdentificationProvider({ children }: { children: React.ReactNode
       return true;
     } catch (caught) {
       analysisLock.current = false;
-      const uncertain = caught instanceof UncertainIdentificationError;
+      const uncertain = caught instanceof UncertainIdentificationError || caught instanceof Error;
       setSession((current) => ({ ...current, isAnalyzing: false, result: null, requiresRetake: uncertain, error: uncertain ? caught.message : "분석 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요." }));
       return false;
     }
